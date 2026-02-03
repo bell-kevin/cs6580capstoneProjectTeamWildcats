@@ -3,5 +3,13 @@ The necessity for this file became apparent when our team discovered that high q
 
 This file is for linking datasets we can already access and stating potential associated project ideas
 
-1) use cbg (census block group) as a join key for multiple different datasets could make some sort of map application with it
+1) use cbg (census block group) as a join key for multiple different datasets could make some sort of map application with it such as what predicts a walkable city
+https://catalog.data.gov/dataset/walkability-index8
 https://catalog.data.gov/dataset/?q=cbg&page=1
+
+More Ideas
+Registered Nurse Shortage in California data, can join another dataset by county to determine factors that lead to shortage of RNs in california, only downside is that the dataset isn't a ton of rows.
+https://catalog.data.gov/dataset/registered-nurse-shortage-areas-in-california-3bb8c
+
+LAPD Calls - can join other datasets by location and time (like census data) to determine factors that lead to more LAPD calls, can be used to create an app that predicts when and where lapd will be most needed for staffing reasons.
+https://catalog.data.gov/dataset/lapd-calls-for-service-2024
