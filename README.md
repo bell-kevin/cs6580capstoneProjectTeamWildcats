@@ -14,4 +14,6 @@
 
 https://dashboard-snowbasin-wildcats.vercel.app/
 
+https://d34agsj343lfgw.cloudfront.net/
+
 <p align="right"><a href="#readme-top">back to top</a></p>
