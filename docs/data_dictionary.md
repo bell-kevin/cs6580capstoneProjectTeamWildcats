@@ -157,3 +157,17 @@ The joined MesoWest dataset includes the variables below. Each entry lists the v
 | WRAT | float | SIGW/USTR (unitless). |
 | WSNC | float | Vertical velocity (m/s). |
 | WSTD | float | Vertical wind standard deviation (m/s). |
+
+## U.S. Federal Holidays Dataset (`us_federal_holidays_2015_2026.csv`)
+
+This dataset contains one row per U.S. federal holiday occurrence, including both the statutory holiday date and the observed federal holiday date when a weekend shift applies.
+
+| Column | Type | Description |
+| --- | --- | --- |
+| year | int | Calendar year associated with the holiday occurrence. |
+| holiday_name | string | Official holiday name (for example, `Memorial Day` or `Juneteenth National Independence Day`). |
+| actual_date | date (`YYYY-MM-DD`) | The holiday’s calendar (statutory) date. |
+| actual_day_of_week | string | Day of week for `actual_date`. |
+| observed_date | date (`YYYY-MM-DD`) | Federal observed holiday date used for closures/time-off rules. May differ from `actual_date` when the holiday falls on a weekend. |
+| observed_day_of_week | string | Day of week for `observed_date`. |
+| observed_shifted | boolean | `True` when `observed_date` differs from `actual_date`; otherwise `False`. |
