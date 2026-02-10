@@ -5,9 +5,9 @@
 ## The Wildcats
 
 ### 
-- Dani Lopez (add role)
+- Dani Lopez (Data Analyst)
 - Hazem Dawahi (Frontend and Backend integration)
-- Roberto Camposeco (add role)
+- Roberto Camposeco (Data Engineer)
 - Kevin Bell (Data Miner)
 
 #### The Goal: Predict peak-hour traffic volume on Trappers Loop (SR-167) to optimize mountain resort staffing and parking operations 72 hours in advance.
