@@ -2,252 +2,206 @@
 
 This document summarizes all CSV and Excel files currently present in the repository and records basic validation details.
 
+## data/interim/joined_data.csv
+
+- Format: CSV
+- Rows: 53,089
+- Columns: 17
+- Column names: Date_Hour, NLane1, PLane1, ID = SBBWK, TMP ° F, DWP °F, RELH %, QFLG , ALTI in, SOLR W/m*m, VOLT volt, SKNT mph, GUST mph, DRCT °, SNOW in, P01I in, SINT in
+
+## data/interim/trappers_loop_data.csv
+
+- Format: CSV
+- Rows: 145,250
+- Columns: 4
+- Column names: Unnamed: 0, Date_Hour, LANE, Count
+
+## data/interim/weather_data.csv
+
+- Format: CSV
+- Rows: 322,423
+- Columns: 14
+- Column names: ID = SBBWK, TMP ° F, DWP °F, RELH %, QFLG , ALTI in, SOLR W/m*m, VOLT volt, SKNT mph, GUST mph, DRCT °, SNOW in, P01I in, SINT in
+
 ## data/raw/federalHolidayData/us_federal_holidays_2015_2026.csv
 
+- Format: CSV
 - Rows: 126
-
 - Columns: 7
-
 - Column names: year, holiday_name, actual_date, actual_day_of_week, observed_date, observed_day_of_week, observed_shifted
 
 ## data/raw/trappersLoopCounts/0609_2001_2025.csv
 
+- Format: CSV
 - Rows: 25,060
-
 - Columns: 28
-
 - Column names: STATION, DATE_ONLY, DIR, H0000, H0100, H0200, H0300, H0400, H0500, H0600, H0700, H0800, H0900, H1000, H1100, H1200, H1300, H1400, H1500, H1600, H1700, H1800, H1900, H2000, H2100, H2200, H2300, TOTAL
 
 ## data/raw/trappersLoopCounts/Trappers_Loop_2015.csv
 
+- Format: CSV
 - Rows: 710
-
 - Columns: 30
-
 - Column names: STATION, DATE, ROUTE, MP, LANE, H0000, H0100, H0200, H0300, H0400, H0500, H0600, H0700, H0800, H0900, H1000, H1100, H1200, H1300, H1400, H1500, H1600, H1700, H1800, H1900, H2000, H2100, H2200, H2300, TOTAL
 
 ## data/raw/trappersLoopCounts/Trappers_Loop_2016.csv
 
+- Format: CSV
 - Rows: 704
-
 - Columns: 30
-
 - Column names: STATION, DATE, ROUTE, MP, LANE, H0000, H0100, H0200, H0300, H0400, H0500, H0600, H0700, H0800, H0900, H1000, H1100, H1200, H1300, H1400, H1500, H1600, H1700, H1800, H1900, H2000, H2100, H2200, H2300, TOTAL
 
 ## data/raw/trappersLoopCounts/Trappers_Loop_2017.csv
 
+- Format: CSV
 - Rows: 696
-
 - Columns: 30
-
 - Column names: STATION, DATE, ROUTE, MP, LANE, H0000, H0100, H0200, H0300, H0400, H0500, H0600, H0700, H0800, H0900, H1000, H1100, H1200, H1300, H1400, H1500, H1600, H1700, H1800, H1900, H2000, H2100, H2200, H2300, TOTAL
 
 ## data/raw/trappersLoopCounts/Trappers_Loop_2018.csv
 
+- Format: CSV
 - Rows: 720
-
 - Columns: 30
-
 - Column names: STATION, DATE, ROUTE, MP, LANE, H0000, H0100, H0200, H0300, H0400, H0500, H0600, H0700, H0800, H0900, H1000, H1100, H1200, H1300, H1400, H1500, H1600, H1700, H1800, H1900, H2000, H2100, H2200, H2300, TOTAL
 
 ## data/raw/trappersLoopCounts/Trappers_Loop_2019.csv
 
+- Format: CSV
 - Rows: 722
-
 - Columns: 30
-
 - Column names: STATION, DATE, ROUTE, MP, LANE, H0000, H0100, H0200, H0300, H0400, H0500, H0600, H0700, H0800, H0900, H1000, H1100, H1200, H1300, H1400, H1500, H1600, H1700, H1800, H1900, H2000, H2100, H2200, H2300, TOTAL
 
 ## data/raw/trappersLoopCounts/Trappers_Loop_2020.csv
 
+- Format: CSV
 - Rows: 388
-
 - Columns: 30
-
 - Column names: STATION, DATE, ROUTE, MP, LANE, H0000, H0100, H0200, H0300, H0400, H0500, H0600, H0700, H0800, H0900, H1000, H1100, H1200, H1300, H1400, H1500, H1600, H1700, H1800, H1900, H2000, H2100, H2200, H2300, TOTAL
 
 ## data/raw/trappersLoopCounts/Trappers_Loop_2021.csv
 
+- Format: CSV
 - Rows: 434
-
 - Columns: 30
-
 - Column names: STATION, DATE, ROUTE, MP, LANE, H0000, H0100, H0200, H0300, H0400, H0500, H0600, H0700, H0800, H0900, H1000, H1100, H1200, H1300, H1400, H1500, H1600, H1700, H1800, H1900, H2000, H2100, H2200, H2300, TOTAL
 
 ## data/raw/trappersLoopCounts/Trappers_Loop_2022.csv
 
+- Format: CSV
 - Rows: 544
-
 - Columns: 30
-
 - Column names: STATION, DATE, ROUTE, MP, LANE, H0000, H0100, H0200, H0300, H0400, H0500, H0600, H0700, H0800, H0900, H1000, H1100, H1200, H1300, H1400, H1500, H1600, H1700, H1800, H1900, H2000, H2100, H2200, H2300, TOTAL
 
 ## data/raw/trappersLoopCounts/Trappers_Loop_2023.csv
 
+- Format: CSV
 - Rows: 170
-
 - Columns: 30
-
 - Column names: STATION, DATE, ROUTE, MP, LANE, H0000, H0100, H0200, H0300, H0400, H0500, H0600, H0700, H0800, H0900, H1000, H1100, H1200, H1300, H1400, H1500, H1600, H1700, H1800, H1900, H2000, H2100, H2200, H2300, TOTAL
 
 ## data/raw/trappersLoopCounts/Trappers_Loop_2024.csv
 
+- Format: CSV
 - Rows: 722
-
 - Columns: 30
-
 - Column names: STATION, DATE, ROUTE, MP, LANE, H0000, H0100, H0200, H0300, H0400, H0500, H0600, H0700, H0800, H0900, H1000, H1100, H1200, H1300, H1400, H1500, H1600, H1700, H1800, H1900, H2000, H2100, H2200, H2300, TOTAL
 
 ## data/raw/weatherData/SBBWK_2016.xlsx
 
 - Format: Excel workbook
-
 - Sheets: Sheet1
-
 - Active sheet audited: Sheet1
-
 - Rows: 4,523
-
 - Columns: 14
-
 - Column names: ID = SBBWK, TMP ° F, DWP °F, RELH %, QFLG , ALTI in, SOLR W/m*m, VOLT volt, SKNT mph, GUST mph, DRCT °, SNOW in, P01I in, SINT in
 
 ## data/raw/weatherData/SBBWK_2017.xlsx
 
 - Format: Excel workbook
-
 - Sheets: Sheet1
-
 - Active sheet audited: Sheet1
-
 - Rows: 35,018
-
 - Columns: 14
-
 - Column names: ID = SBBWK, TMP ° F, DWP °F, RELH %, QFLG , ALTI in, SOLR W/m*m, VOLT volt, SKNT mph, GUST mph, DRCT °, SNOW in, P01I in, SINT in
 
 ## data/raw/weatherData/SBBWK_2018.xlsx
 
 - Format: Excel workbook
-
 - Sheets: Sheet1
-
 - Active sheet audited: Sheet1
-
 - Rows: 34,669
-
 - Columns: 14
-
 - Column names: ID = SBBWK, TMP ° F, DWP °F, RELH %, QFLG , ALTI in, SOLR W/m*m, VOLT volt, SKNT mph, GUST mph, DRCT °, SNOW in, P01I in, SINT in
 
 ## data/raw/weatherData/SBBWK_2019.xlsx
 
 - Format: Excel workbook
-
 - Sheets: Sheet1
-
 - Active sheet audited: Sheet1
-
 - Rows: 34,788
-
 - Columns: 14
-
 - Column names: ID = SBBWK, TMP ° F, DWP °F, RELH %, QFLG , ALTI in, SOLR W/m*m, VOLT volt, SKNT mph, GUST mph, DRCT °, SNOW in, P01I in, SINT in
 
 ## data/raw/weatherData/SBBWK_2020.xlsx
 
 - Format: Excel workbook
-
 - Sheets: Sheet1
-
 - Active sheet audited: Sheet1
-
 - Rows: 35,115
-
 - Columns: 14
-
 - Column names: ID = SBBWK, TMP ° F, DWP °F, RELH %, QFLG , ALTI in, SOLR W/m*m, VOLT volt, SKNT mph, GUST mph, DRCT °, SNOW in, P01I in, SINT in
 
 ## data/raw/weatherData/SBBWK_2021.xlsx
 
 - Format: Excel workbook
-
 - Sheets: Sheet1
-
 - Active sheet audited: Sheet1
-
 - Rows: 35,018
-
 - Columns: 14
-
 - Column names: ID = SBBWK, TMP ° F, DWP °F, RELH %, QFLG , ALTI in, SOLR W/m*m, VOLT volt, SKNT mph, GUST mph, DRCT °, SNOW in, P01I in, SINT in
 
 ## data/raw/weatherData/SBBWK_2022.xlsx
 
 - Format: Excel workbook
-
 - Sheets: Sheet1
-
 - Active sheet audited: Sheet1
-
 - Rows: 35,021
-
 - Columns: 14
-
 - Column names: ID = SBBWK, TMP ° F, DWP °F, RELH %, QFLG , ALTI in, SOLR W/m*m, VOLT volt, SKNT mph, GUST mph, DRCT °, SNOW in, P01I in, SINT in
 
 ## data/raw/weatherData/SBBWK_2023.xlsx
 
 - Format: Excel workbook
-
 - Sheets: Sheet1
-
 - Active sheet audited: Sheet1
-
 - Rows: 35,018
-
 - Columns: 14
-
 - Column names: ID = SBBWK, TMP ° F, DWP °F, RELH %, QFLG , ALTI in, SOLR W/m*m, VOLT volt, SKNT mph, GUST mph, DRCT °, SNOW in, P01I in, SINT in
 
 ## data/raw/weatherData/SBBWK_2024.xlsx
 
 - Format: Excel workbook
-
 - Sheets: Sheet1
-
 - Active sheet audited: Sheet1
-
 - Rows: 35,116
-
 - Columns: 14
-
 - Column names: ID = SBBWK, TMP ° F, DWP °F, RELH %, QFLG , ALTI in, SOLR W/m*m, VOLT volt, SKNT mph, GUST mph, DRCT °, SNOW in, P01I in, SINT in
 
 ## data/raw/weatherData/SBBWK_2025.xlsx
 
 - Format: Excel workbook
-
 - Sheets: Sheet1
-
 - Active sheet audited: Sheet1
-
 - Rows: 34,925
-
 - Columns: 14
-
 - Column names: ID = SBBWK, TMP ° F, DWP °F, RELH %, QFLG , ALTI in, SOLR W/m*m, VOLT volt, SKNT mph, GUST mph, DRCT °, SNOW in, P01I in, SINT in
 
 ## data/raw/weatherData/SBBWK_2026.xlsx
 
 - Format: Excel workbook
-
 - Sheets: Sheet1
-
 - Active sheet audited: Sheet1
-
 - Rows: 3,212
-
 - Columns: 14
-
 - Column names: ID = SBBWK, TMP ° F, DWP °F, RELH %, QFLG , ALTI in, SOLR W/m*m, VOLT volt, SKNT mph, GUST mph, DRCT °, SNOW in, P01I in, SINT in
