@@ -36,6 +36,21 @@ Outputs:
 - `data/processed/snowbasin_hourly_joined.csv`
 - `data/processed/snowbasin_data_quality_report.csv`
 
+### Sprint 2 visual evidence
+
+Generate the required EDA visual artifacts (saved as text-based SVG files in `results/`):
+
+```bash
+python src/generate_eda_artifacts.py
+```
+
+Artifacts produced:
+
+- `results/traffic_count_distribution.svg`
+- `results/temperature_distribution.svg`
+- `results/correlation_heatmap.svg`
+- `results/summary_statistics.csv`
+
 ### Tests
 
 Run the automated test suite:
