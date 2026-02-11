@@ -83,4 +83,517 @@ A full inventory of every CSV and Excel source currently in the repository is do
 - Dashboard: https://dashboard-snowbasin-wildcats.vercel.app/
 - Data export endpoint: https://d34agsj343lfgw.cloudfront.net/
 
+
+
+besides the kanban-style board stuff, did i do everything so far that's been asked of me? just answer with a simple yes or no. if no, explain why. fix whatever is keeping me from getting to a yes answer to my question. look at all my CSV and excel files and related files. read through all the files already in my github repository before you start doing anything. read the readme. binary files are not supported so only create file types that are not binary file types. testing requested. please test thoroughly. spin up whatever you need to test thoroughly. spin up openpyxl for testing purposes, if needed. break this big openai codex task up into smaller openai codex tasks.
+Skip To Content
+Dashboard
+
+    Kevin Bell
+    Account
+    Dashboard
+    Courses
+    Groups
+    Calendar
+    Inbox
+    History
+    Kaltura
+    My Media
+    Help
+
+
+      
+
+    CS 6580 WSU Spring 2026 32016Syllabus
+
+Spring 2026
+
+    Home
+    Syllabus
+    Announcements
+    Modules
+    Assignments
+    Files
+    People
+    Grades
+    Lucid (Whiteboard)
+    VitalSource Course Materials
+    Simple Syllabus
+    Student Resources
+
+CS 6580 WSU Spring 2026 32016
+Jump to Today
+Syllabus for CS 6580 – Data Science Algorithms II
+
+Weber State University - Spring 2026
+
+ 
+
+Time: Tuesdays and Thursdays 10:30 AM - 11:45 AM
+
+Location: Noorda Engineering, Applied Science, and Technology Building Building 328
+
+Instructor: Patrick Dylan Zwick
+
+Office: Noorda Engineering, Applied Science, and Technology Building 242L                                                           
+
+Office Hours:  Tuesdays 12:30pm – 1:30pm,  Thursdays 2:30pm - 4:30pm
+
+Email: dylanzwick@weber.edu
+
+Zoom: Link Links to an external site.                                                                                                                                      
+
+Prerequisites:  CS-4580 or CS-5580 or CS-6570 or CS-6600
+Course Description
+
+This course is focused on the techniques, algorithms, and approaches that are most used in industry today, with an emphasis on practical applications.
+
+The prerequisites are more traditional machine learning courses. This course will not be. Specifically, this course will focus on tools and techniques of greatest use to the everyday job of a working data scientist with a particular emphasis on aspects not covered in other classes offered by the computer science or math departments. We'll cover not just algorithms and analysis, but project management, communication, and presentation.
+
+This class will assume some working knowledge of the data scientist toolkit, and will be more focused on applying and integrating these tools as compared to learning them. It will be project based. This class will be a bit of an experiment, and plans may adjust as we go along. Please don't hesitate to provide me with feedback and suggestions. This class is meant to valuable and useful to you, and if I can make it more so I will.
+
+The class will consist of assignments, and projects that you'll work on in groups. The projects will involve planning, data collection, cleaning, analysis, and modeling, plus a final presentation.
+Course Policies
+
+    All university policies for students with disabilities will be supported in this class. Any student requiring accommodations or services due to a disability should contact Services for Students with Disabilities (SSD) in room 181 of the Student Services Center and discuss their request with me during the first 2 weeks of class.
+    If you feel that you have received an incorrect grade on any assignment, write the reason you think the grade is incorrect and submit the reason to me by email within a week of the grade becoming available.
+    Late work will be accepted up to one week after it is due, with a 25% penalty.
+    Attendance is strongly encouraged, but is not mandatory, and not incorporated into your final grade.
+    In the event of an extended campus closure, I will continue to provide instruction by utilizing Canvas, the online course system. I will expect you to log in to the system on a regular basis to keep up with coursework. Assignments will be provided through the online system with clear due dates and expectations. Discussions will be made available to allow you to interact with other students and me about course material. I will check my Weber email daily should you need to communicate with me personally. It is imperative that I can contact you and that I have accurate contact info on you. You are responsible for checking your Weber e-mail or for having Weber messages forwarded to accounts you do check.
+    Additional information regarding Weber State and COVID-19 can be found at https://weber.edu/coronavirusLinks to an external site.
+
+Course Fees
+
+Course fees for the Computer Science major are designed to cover the costs of lab equipment maintenance and replacement including desktop and server computer systems and software; consumable materials and supplies; and support for lab aides, student tutors, and online instructional resources.
+Cheating
+
+Students are expected to maintain academic ethics and integrity regarding the performance of their own
+
+work. The WSU Student Code clarifies violations of this expectation as:
+
+    Cheating, which includes but is not limited to:
+        Copying from another student's test paper.
+        Using materials during a test not authorized by the person giving the test.
+        Collaborating with any other person during a test without authority.
+        Knowingly obtaining, using, buying, selling, transporting, or soliciting in whole or in part the contents of any test, without authorization of the appropriate official.
+        Bribing any other person to obtain any test.
+        Soliciting or receiving unauthorized information about any test.
+        Substituting for another student or permitting any other person to substitute for oneself to take a test.
+    Plagiarism, which is the unacknowledged (uncited) use of any other person or group's ideas or work. This includes purchased or borrowed papers.
+    Collusion, which is the unauthorized collaboration with another person in preparing work offered for credit.
+    Falsification, which is the intentional and unauthorized altering or inventing of any information or citation in an academic exercise, activity, or record-keeping process.
+    Giving, selling, or receiving unauthorized course or test information.
+    Using any unauthorized resource or aid in the preparation or completion of any course work, exercise, or activity.
+    Infringing on the copyright law of the United States which prohibits the making of reproductions of copyrighted material except under certain specified conditions.
+
+CS policy dictates that any verifiable evidence of student academic cheating, as defined and determined by the instructor, will result in 1) an automatic failing grade for the class and 2) a report to the Dean of Students that will include the student's name and a description of the student's dishonest conduct.
+Grading   
+
+ 
+
+                        93% - 100%    A                     80% - 82%      B-                    67% - 69%      D+
+
+                        90% - 92%      A-                    77% - 79%      C+                   63% - 66%      D
+
+                        87% - 89%      B+                   73% - 76%      C                     60% - 62%      D-
+
+                        83% - 86%      B                     70% - 72%      C-                    <60%               E
+
+ 
+
+There will be no exams for this course. There will be final project presentations on Thursday, April 23rd (during finals week) from 11:00am to 12:50pm.
+
+Please note that I may curve grades for this class at the end. So, it's possible that the actual letter grade buckets will be less strict than this - but I promise they won't be more strict. In other words, if at the end of the class you're in the B+ bucket according to the information above, then you're guaranteed to get at least a B+, but you could possibly get a higher letter grade.
+Class Schedule
+
+Please note this schedule is a living document. So, I will update it as the semester progresses. 
+
+You can find Zoom recordings of lectures here Links to an external site..
+Date 	Topic
+January 6th 	Introduction to Deep Learning
+January 8th 	How Neural Networks Learn
+January 13th 	Basic Tools and Data Cleaning
+January 15th 	Data Quality Assurance and Exploration
+January 20th 	Measuring Model Performance
+January 22nd 	Data Science Project Management
+January 27th 	Project Work Day
+January 29th 	CRISP-DM (Cross-Industry Standard Process for Data Mining)
+February 3rd 	TDSP (Team Data Science Process)
+February 5th 	Project Work Day
+February 10th 	Basic Modeling Concepts
+Course Summary:
+Course Summary
+Date 	Details 	Due
+Mon Jan 19, 2026 	Assignment Groups 	due by 11:59pm
+Thu Jan 22, 2026 	Assignment Capstone Project Feasibility Worksheet 	due by 11:59pm
+Wed Jan 28, 2026 	Assignment Sprint 1 	due by 11:59pm
+Thu Feb 5, 2026 	Assignment Sprint 2 (Week 1) 	due by 11:59pm
+Thu Feb 12, 2026 	Assignment Sprint 2 (Week 2) 	due by 11:59pm
+To Do
+
+    Tomorrow's Class - Basic Modeling Concepts
+    CS 6580 WSU Spring 2026 32016
+        Feb 9 at 5:26pm
+    work athletic tutoring/graduate assistant 15 hours per week
+        Feb 10 at 12am
+    Class in person - CS 6580 – Data Science Algorithms II - noorda 328
+        Feb 10 at 10:30am
+    President Dallin H. Oaks to Deliver First Devotional as Prophet View the live stream on February 10 at 11 a.m. MST on various Church channels
+        Feb 10 at 11:59pm
+    work athletic tutoring/graduate assistant 15 hours per week
+        Feb 11 at 12am
+    athletic mentoring - Taliah Lee
+        Feb 11 at 9:30am
+    Avery McEwen WSU EAST alumni DB 11 AM on Discord
+        Feb 11 at 11:59pm
+
+February 2026
+Calendar
+Sunday 	Monday 	Tuesday 	Wednesday 	Thursday 	Friday 	Saturday
+25 January 2026 25 Previous month
+	
+26 January 2026 26 Previous month
+	
+27 January 2026 27 Previous month
+	
+28 January 2026 28 Previous month Click to view event details
+	
+29 January 2026 29 Previous month
+	
+30 January 2026 30 Previous month
+	
+31 January 2026 31 Previous month
+1 February 2026 1
+	
+2 February 2026 2
+	
+3 February 2026 3
+	
+4 February 2026 4
+	
+5 February 2026 5 Click to view event details
+	
+6 February 2026 6
+	
+7 February 2026 7
+8 February 2026 8
+	
+9 February 2026 9
+	
+10 February 2026 10 Today
+	
+11 February 2026 11
+	
+12 February 2026 12 Click to view event details
+	
+13 February 2026 13
+	
+14 February 2026 14
+15 February 2026 15
+	
+16 February 2026 16
+	
+17 February 2026 17
+	
+18 February 2026 18
+	
+19 February 2026 19
+	
+20 February 2026 20
+	
+21 February 2026 21
+22 February 2026 22
+	
+23 February 2026 23
+	
+24 February 2026 24
+	
+25 February 2026 25
+	
+26 February 2026 26
+	
+27 February 2026 27
+	
+28 February 2026 28
+1 March 2026 1 Next month
+	
+2 March 2026 2 Next month
+	
+3 March 2026 3 Next month
+	
+4 March 2026 4 Next month
+	
+5 March 2026 5 Next month
+	
+6 March 2026 6 Next month
+	
+7 March 2026 7 Next month
+Course assignments are not weighted.
+Recent Feedback
+
+    Sprint 2 (Week 1)
+
+    30 out of 35
+    Sprint 1
+
+    50 out of 50
+    Groups
+
+    10 out of 10
+    Capstone Project Feasibility Worksheet
+
+    50 out of 50
+
+
+CS-6580: Data Science Capstone
+Weber State University | Spring 2026
+1. Project Overview
+In this course, you will work on a project to learn and demonstrate capabilities with real world data and significant, open-ended questions. You will not be given a clean CSV file and a list of instructions. Instead, you are tasked with identifying a real-world problem, acquiring the necessary data, managing a 12-week development lifecycle, and delivering a "production-ready" solution to a business stakeholder.
+The Challenge
+You must build an end-to-end data product that provides actionable insight or predictive value. This project will require you to demonstrate mastery of:
+Project Scoping: Defining "Success" before writing code.
+Data Engineering: Wrangling disparate, "messy" public datasets.
+Modeling: Selecting and validating the right tool for the job.
+Production: Deploying your results via a live dashboard or API.
+Communication: Explaining complex findings to non-technical executives.
+2. Project Overview
+
+Sprint
+Dates
+Milestone
+Deliverable
+Launch
+Jan 15 – Jan 21
+Ideation & Selection
+Project Pitch (Oral)
+Scope
+Jan 22 – Feb 4
+Feasibility & Design
+Project Charter
+Pipe
+Feb 5 – Feb 18
+Data Acquisition & Cleaning
+Technical Baseline Report
+Explore
+Feb 19 – Mar 4
+EDA & Baseline Modeling
+Insights Dashboard
+Refine
+Mar 5 – Mar 25*
+Engineering & Optimization
+Model Selection Memo
+Deploy
+Mar 26 – Apr 8
+UI/UX & Deployment
+Working MVP (Live App)
+Close
+Apr 9 – Apr 19
+Quality Assurance & Docs
+Final GitHub Repo
+Finals
+Apr 20 – Apr 24
+The Boardroom
+Final Presentation
+
+*Includes spring break.
+3. Example Projects
+These are some example projects to get you thinking about what your project could be. You could choose to pursue one of them, or something inspired by one, or come up with your own.
+1. Political: The "Micro-Turnout" Predictor (Weber County)
+The Goal: Predict voter turnout at the precinct level for the next election cycle using demographic and historical proxies.
+The Data:
+Weber County Elections Office: Free historical precinct-level results (available as PDFs or CSVs).
+U.S. Census API: Demographic data (age, income, education) mapped to Ogden/Roy/South Ogden zip codes.
+The Twist: Since the full voter file costs money, students must build a "proxy model" using public census data to see which neighborhood variables most strongly correlate with high/low turnout in past Ogden elections.
+Stakeholder Question: "Based on demographic shifts in Ogden, which 5 precincts are likely to see the largest increase in voter participation in 2026?"
+2. Economic: The "Hill AFB Effect" on Local Housing
+The Goal: Model the relationship between Department of Defense (DoD) contract awards in Northern Utah and the surrounding housing market in Clinton, Clearfield, and Layton.
+The Data: 
+USASpending.gov API: Real-time tracking of federal contracts awarded to companies like Northrop Grumman or BAE Systems in the Ogden-Clearfield MSA.
+St. Louis Fed (FRED): Local House Price Index (HPI) and unemployment rates for Weber/Davis counties.
+Stakeholder Question: "Does a $100M increase in local defense spending predict a measurable spike in home prices in the 'commuter belt' around Hill AFB 6 months later?"
+
+3. Environmental: Great Salt Lake "Dust Warnings" for Ogden
+The Goal: Predict "Hazardous Dust Days" in Ogden by correlating the receding Great Salt Lake water levels with local air quality sensors.
+The Data: 
+USGS Water Data: Daily lake level elevations for the Great Salt Lake.
+Utah DEQ / AirNow API: Historical PM2.5 and PM10 (particulate matter) levels from the Ogden station.
+NOAA: Wind speed and direction (essential for determining if dust is blowing toward the Wasatch Front).
+Stakeholder Question: "At what specific lake elevation and wind speed threshold does Ogden experience a 2x increase in particulate matter?"
+4. Logistics: The Snowbasin "Congestion Engine"
+The Goal: Predict peak-hour traffic volume on Trappers Loop (SR-167) to optimize mountain resort staffing and parking operations 72 hours in advance.
+The Data:
+UDOT Traffic Statistics (CCS Hourly Volumes): Historical hourly traffic counts from Station #029-0010 (located on Trappers Loop). This provides the "ground truth" for resort arrivals.
+NOAA Local Climate Data: Historical and forecasted snowfall, wind speed (critical for lift closures), and visibility from the Huntsville or Ogden stations.
+Utah State Holidays & WSU Academic Calendar: A categorical dataset to flag "High-Volume" days (e.g., MLK Weekend, WSU Spring Break, or "Powder Days").
+Stakeholder Question: "Based on a 10-inch snowfall forecast and a Saturday holiday, what is the predicted peak arrival volume between 7:00 AM and 9:00 AM, and should we activate the overflow parking plan?"
+5. Business Intelligence: The Whole Foods Site Selection
+The Goal: Identify the optimal location for a new "Whole Foods Market" in the Ogden-Clearfield MSA by modeling the intersection of high-income density, competitor gaps, and "lifestyle" anchors.
+The Data:
+U.S. Census Bureau (ACS): High-resolution demographic data (Median Household Income, % College Educated, and Population Density) at the Census Block Group level. (Note: Whole Foods typically targets households with income >$75k).
+OpenStreetMap (OSM) / Google Places API: Locations of existing "Premium" competitors (Harmons, Natural Grocers, Sprouts) and "Anchor" lifestyle businesses (Lululemon, REI, or high-end gyms).
+Utah DOT (UDOT) Traffic AADT: Average Annual Daily Traffic counts to ensure the site has the required "high-visibility" and "easy-access" road frontage.
+Stakeholder Question: "Which specific 1-mile radius in Northern Utah has the highest concentration of our target demographic currently underserved by a premium organic grocer?"
+
+
+
+
+CS-6580: Sprint 1 — The Project Ignition
+Dates: January 22, 2026 – January 29, 2026
+Due: January 29, 2026 (Before Class)
+Deliverable: A link to your team’s GitHub Repository within the WSU Organization.
+1. Overview
+In this one-week sprint, your team will transition from the Ideation phase to the Execution phase. You are adopting the Team Data Science Process (TDSP) to ensure your project is reproducible, collaborative, and professional.
+By the end of this week, you must have your "Infrastructure of Collaboration" fully operational.
+
+2. Required Tasks (The Checklist)
+A. The README.md file
+The first thing you’ll want to do is create a README.md file for your repository. This file should contain:
+Project title
+Team name
+Team member names and roles
+High level overview  
+B. Repository Infrastructure (TDSP Standards)
+You must set up the following directory structure in your GitHub repository. This is not optional; it is the standard for the course.
+/data: Folder for your data, broken into subfolders (described below).
+/data/raw: Place a sample or a link to your raw source data here.
+/data/interim: Data that has been partially cleaned / transformed.
+/data/processed: The datasets that are ready to be fed into an ML model.
+/docs: Store your Project Charter and meeting notes.
+/notebooks: For initial Exploratory Data Analysis (EDA).
+/src: For future production-level Python/R scripts.
+.gitignore: Ensure this is configured to prevent large data files or .env files from being pushed to the cloud. Explained in more detail below.
+C. Understanding and Setting Up .gitignore
+What is it?
+A .gitignore file is a plain text file that tells GitHub: "Do not upload these specific files or folders to the server." Why do you need it?
+File Size Limits: GitHub has a 100MB limit per file. If you try to push a 2GB CSV of UDOT traffic data, the upload will fail, and it can be a nightmare to fix the "broken" repository history.
+Security: You never want to upload API keys, passwords, or local system files (like .DS_Store on Mac or thumbs.db on Windows).
+Cleanliness: You don't want "junk" files (like Python cache files or temporary Jupyter checkpoints) cluttering the repo.
+How to Set Up .gitignore
+Create the file: In the root of your repository, create a new file and name it exactly .gitignore (don't forget the leading dot).
+Use a Template: GitHub provides standard templates. Since we’re using Python in CS-6580, copy the Python template from GitHub's official collection.
+Add Custom Data Rules: Add these lines to the bottom of the file to protect your repo from large data files:
+	# Ignore all data files locally (protects against large uploads)
+	data/raw/*
+	data/interim/*
+	data/processed/*
+# But don't ignore the folders themselves (so the structure stays on GitHub)
+	!data/raw/.gitkeep
+	!data/interim/.gitkeep
+	!data/processed/.gitkeep
+# Ignore API keys and environment variables
+	.env
+	Keys.json
+
+
+D. The Project Charter (CRISP-DM Phase 1)
+In the /docs folder, create a file named charter.md. This is your contract for the semester. It must include:
+Business Question: What specific problem are you solving?
+Stakeholder: Who is the end-user of this data?
+Success Metrics: How will you measure success (technical and business)?
+Defined Roles: Who is doing what? Roles could include Data Engineer, Modeling Lead, Git/Project Manager, Research Lead, etc…
+E. The Project Board (Work Breakdown)
+Your GitHub Project Board must be populated with at least 8-10 tasks (Issues).
+Every task must be assigned to at least one team member.
+The Project Board should have four columns: ToDo, In Progress, Done, and Blocked.
+At least 4 tasks must be moved to the "Done" column by the January 29th deadline (e.g., Repo setup, Charter drafting, Data download).
+F. The "Verification of Life" (EDA Start)
+One team member must push a Jupyter Notebook to the /notebooks folder that:
+Successfully imports your primary datasets.
+Displays the first 5 rows and the column summary (df.info()).
+Proves the "Join" between your two datasets is possible (even if only on a small subset).
+
+3. Professionalism & Git Standards
+To receive full credit for this sprint, the repository must reflect Team Effort:
+Commit Pulse: Every team member must have at least two commits to the repository this week.
+README.md: Must be updated with your project title, team member names, and a high-level summary.
+Issue Tracking: All work must be linked to an Issue on the Project Board.
+
+
+CS-6580: Sprint 2 — Data Deep-Dive & Pipeline Construction
+Dates: January 30, 2026 – February 12, 2026
+Progress Sync (Week 1): February 5, 2026
+Final Due (Week 2): February 12, 2026 (Before Class)
+Deliverable: Updated GitHub Repository with processed data and cleaning scripts.
+
+1. Overview
+Following the Project Ignition phase , Sprint 2 moves your team into the Data Understanding and Data Preparation stages of the CRISP-DM lifecycle. The goal of this two-week sprint is to transition from raw, messy data into a clean, "analysis-ready" dataset stored in your TDSP directory structure.
+By the end of this sprint, any teammate should be able to run a single script and reproduce your final joined dataset from scratch.
+
+2. Required Tasks (The Checklist)
+A. Comprehensive EDA & Data Dictionary
+Building on your "Verification of Life", you must now document exactly what your data contains.
+Data Dictionary: Create docs/data_dictionary.md. For every column in your joined dataset, list the name, data type (int, float, string), and a description of what it represents.
+Exploratory Notebooks: Your /notebooks folder should now contain detailed analysis exploring distributions, missing values, and correlations.
+Visual Evidence: Save at least three key plots (e.g., histograms of your target variable, correlation heatmaps) in the /results folder.
+
+B. The Reproducible Cleaning Pipeline
+In Sprint 1, you set up the /src and /data subfolders. Now you must use them.
+src/data_cleaning.py : Move your cleaning logic out of notebooks and into a formal script.
+Immutable Raw Data: Your script must read from /data/raw and write to /data/processed. Never modify the files in /data/raw.
+The Join: The script must programmatically perform the join between your datasets.
+C. .gitignore & Data Integrity
+Ensure your .gitignore is functioning correctly as data files grow.
+Verification: Confirm that no files in /data/raw, /data/interim, or /data/processed are being tracked by Git.
+Check: Large files (>100MB) must not be pushed to GitHub.
+D. Agile Project Management
+Board Maintenance: Populate your board with 8-10 new tasks specific to data cleaning and feature engineering.
+Column Discipline: Actively move cards through To Do, In Progress, Blocked, and Done.
+The "Closes" Keyword: All commits must be linked to an Issue using Closes #IssueNumber in the commit message.
+
+3. Week 1 Progress Sync (Due Feb 5)
+This is a "soft" milestone to ensure no team is stalled by data quality issues.
+The Blocker Audit: Every team must have a status update on their Project Board. If you are struggling with a "Join Key" or missing data, the task must be in the Blocked column with a comment tagging the professor.
+Updated README: Ensure your README.md reflects the current Sprint 2 goals.
+
+
+
+4. Professionalism & Git Standards
+To receive full credit, the repository must reflect a Team Effort:
+Commit Pulse: Every team member must contribute at least two commits per week (four total for the sprint).
+Issue Tracking: No work should be performed that isn't represented by an assigned Issue on the Project Board.
+
+
+CS-6580: Sprint 2 — Data Deep-Dive & Pipeline Construction
+Dates: January 30, 2026 – February 12, 2026
+Progress Sync (Week 1): February 5, 2026
+Final Due (Week 2): February 12, 2026 (Before Class)
+Deliverable: Updated GitHub Repository with processed data and cleaning scripts.
+
+1. Overview
+Following the Project Ignition phase , Sprint 2 moves your team into the Data Understanding and Data Preparation stages of the CRISP-DM lifecycle. The goal of this two-week sprint is to transition from raw, messy data into a clean, "analysis-ready" dataset stored in your TDSP directory structure.
+By the end of this sprint, any teammate should be able to run a single script and reproduce your final joined dataset from scratch.
+
+2. Required Tasks (The Checklist)
+A. Comprehensive EDA & Data Dictionary
+Building on your "Verification of Life", you must now document exactly what your data contains.
+Data Dictionary: Create docs/data_dictionary.md. For every column in your joined dataset, list the name, data type (int, float, string), and a description of what it represents.
+Exploratory Notebooks: Your /notebooks folder should now contain detailed analysis exploring distributions, missing values, and correlations.
+Visual Evidence: Save at least three key plots (e.g., histograms of your target variable, correlation heatmaps) in the /results folder.
+
+B. The Reproducible Cleaning Pipeline
+In Sprint 1, you set up the /src and /data subfolders. Now you must use them.
+src/data_cleaning.py : Move your cleaning logic out of notebooks and into a formal script.
+Immutable Raw Data: Your script must read from /data/raw and write to /data/processed. Never modify the files in /data/raw.
+The Join: The script must programmatically perform the join between your datasets.
+C. .gitignore & Data Integrity
+Ensure your .gitignore is functioning correctly as data files grow.
+Verification: Confirm that no files in /data/raw, /data/interim, or /data/processed are being tracked by Git.
+Check: Large files (>100MB) must not be pushed to GitHub.
+D. Agile Project Management
+Board Maintenance: Populate your board with 8-10 new tasks specific to data cleaning and feature engineering.
+Column Discipline: Actively move cards through To Do, In Progress, Blocked, and Done.
+The "Closes" Keyword: All commits must be linked to an Issue using Closes #IssueNumber in the commit message.
+
+3. Week 1 Progress Sync (Due Feb 5)
+This is a "soft" milestone to ensure no team is stalled by data quality issues.
+The Blocker Audit: Every team must have a status update on their Project Board. If you are struggling with a "Join Key" or missing data, the task must be in the Blocked column with a comment tagging the professor.
+Updated README: Ensure your README.md reflects the current Sprint 2 goals.
+
+
+
+4. Professionalism & Git Standards
+To receive full credit, the repository must reflect a Team Effort:
+Commit Pulse: Every team member must contribute at least two commits per week (four total for the sprint).
+Issue Tracking: No work should be performed that isn't represented by an assigned Issue on the Project Board.
+
 <p align="right"><a href="#readme-top">back to top</a></p>
