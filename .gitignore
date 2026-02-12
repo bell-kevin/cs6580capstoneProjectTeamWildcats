@@ -216,6 +216,6 @@ data/processed/*
 !data/interim/.gitkeep
 !data/processed/.gitkeep
 
-# Ignore API keys and environment variables
+# Ignore API keys & environment variables
 .env
 Keys.json
