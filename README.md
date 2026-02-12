@@ -5,7 +5,7 @@
 ## The Wildcats
 
 - Dani Lopez (Data Analyst)
-- Hazem Dawahi (Frontend/Backend Integration)
+- Hazem Dawahi (Frontend and Backend Integration)
 - Roberto Camposeco (Data Engineer)
 - Kevin Bell (Data Miner)
 
