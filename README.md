@@ -576,7 +576,6 @@ Immutable Raw Data: Your script must read from /data/raw and write to /data/proc
 The Join: The script must programmatically perform the join between your datasets.
 C. .gitignore & Data Integrity
 Ensure your .gitignore is functioning correctly as data files grow.
-Verification: Confirm that no files in /data/raw, /data/interim, or /data/processed are being tracked by Git.
 Check: Large files (>100MB) must not be pushed to GitHub.
 D. Agile Project Management
 Board Maintenance: Populate your board with 8-10 new tasks specific to data cleaning and feature engineering.
