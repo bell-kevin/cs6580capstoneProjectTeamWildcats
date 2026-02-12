@@ -537,7 +537,7 @@ Check: Large files (>100MB) must not be pushed to GitHub.
 D. Agile Project Management
 Board Maintenance: Populate your board with 8-10 new tasks specific to data cleaning and feature engineering.
 Column Discipline: Actively move cards through To Do, In Progress, Blocked, and Done.
-The "Closes" Keyword: All commits must be linked to an Issue using Closes #IssueNumber in the commit message.
+
 
 3. Week 1 Progress Sync (Due Feb 5)
 This is a "soft" milestone to ensure no team is stalled by data quality issues.
@@ -580,7 +580,7 @@ Check: Large files (>100MB) must not be pushed to GitHub.
 D. Agile Project Management
 Board Maintenance: Populate your board with 8-10 new tasks specific to data cleaning and feature engineering.
 Column Discipline: Actively move cards through To Do, In Progress, Blocked, and Done.
-The "Closes" Keyword: All commits must be linked to an Issue using Closes #IssueNumber in the commit message.
+
 
 3. Week 1 Progress Sync (Due Feb 5)
 This is a "soft" milestone to ensure no team is stalled by data quality issues.
