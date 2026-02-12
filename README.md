@@ -85,7 +85,7 @@ A full inventory of every CSV and Excel source currently in the repository is do
 
 
 
-besides the kanban-style board stuff, did i do everything so far that's been asked of me? just answer with a simple yes or no. if no, explain why. fix whatever is keeping me from getting to a yes answer to my question. look at all my CSV and excel files and related files. read through all the files already in my github repository before you start doing anything. read the readme. binary files are not supported so only create file types that are not binary file types. testing requested. please test thoroughly. spin up whatever you need to test thoroughly. spin up openpyxl for testing purposes, if needed. break this big openai codex task up into smaller openai codex tasks.
+Besides the kanban-style board stuff, did i do everything so far that's been asked of me? just answer with a simple yes or no. if no, explain why. fix whatever is keeping me from getting to a yes answer to my question. look at all my CSV and excel files and related files. read through all the files already in my github repository before you start doing anything. read the readme. binary files are not supported so only create file types that are not binary file types. testing requested. please test thoroughly. spin up whatever you need to test thoroughly. spin up openpyxl for testing purposes, if needed. break this big openai codex task up into smaller openai codex tasks.
 Skip To Content
 Dashboard
 
