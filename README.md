@@ -83,6 +83,18 @@ A full inventory of every CSV and Excel source currently in the repository is do
 - Dashboard: https://dashboard-snowbasin-wildcats.vercel.app/
 - Data export endpoint: https://d34agsj343lfgw.cloudfront.net/
 
+<!--
+https://docs.google.com/spreadsheets/d/19SCDgp7Sh4boJbSSh4ONVqS9Zff8TVXjXxcgmYpLlhA/edit?gid=1263462889#gid=1263462889
+
+https://drive.google.com/drive/folders/1ZYy-WkICLOp1482vwEbTc5UvLItbWs4y
+
+https://udot.iteris-pems.com/#41.203198,-111.878929,12
+
+https://prod-ut.ibi511.com/developers/doc
+
+https://mesowest.utah.edu/cgi-bin/droman/variable_download_select.cgi
+-->
+
 
 
 Besides the kanban-style board stuff, did i do everything so far that's been asked of me? just answer with a simple yes or no. if no, explain why. fix whatever is keeping me from getting to a yes answer to my question. look at all my CSV and excel files and related files. read through all the files already in my github repository before you start doing anything. read the readme. binary files are not supported so only create file types that are not binary file types. testing requested. please test thoroughly. spin up whatever you need to test thoroughly. spin up openpyxl for testing purposes, if needed. break this big openai codex task up into smaller openai codex tasks.
