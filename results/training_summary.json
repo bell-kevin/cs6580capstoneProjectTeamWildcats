@@ -1,0 +1,13 @@
+{
+  "train_rows": 55776,
+  "test_rows": 13944,
+  "baseline_rmse": 295.8172889576291,
+  "baseline_mae": 253.32498711806903,
+  "champion_rmse": 102.9104244096249,
+  "champion_mae": 59.018355114720755,
+  "champion_r2": 0.8789755848285107,
+  "model_artifact": "models/champion_model.joblib",
+  "metrics_file": "results/model_metrics.csv",
+  "actual_vs_predicted_plot": "results/actual_vs_predicted.svg",
+  "residual_plot": "results/residual_plot.svg"
+}

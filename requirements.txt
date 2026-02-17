@@ -22,10 +22,10 @@ matplotlib==3.10.8
 nest-asyncio==1.6.0
 numpy==2.4.1
 openpyxl==3.1.5
-packaging==26.0
-pandas==3.0.0
+packaging==25.0
+pandas==2.2.3
 parso==0.8.5
-pillow==12.1.1
+pillow==11.3.0
 platformdirs==4.5.1
 prompt_toolkit==3.0.52
 psutil==7.2.1
@@ -45,3 +45,6 @@ traitlets==5.14.3
 tzdata==2025.3
 urllib3==2.6.3
 wcwidth==0.3.1
+joblib==1.5.2
+scikit-learn==1.7.2
+gradio==5.49.1

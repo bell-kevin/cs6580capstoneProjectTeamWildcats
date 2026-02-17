@@ -28,6 +28,9 @@ This dictionary documents the **joined hourly modeling dataset** produced by `sr
 | `is_weekend` | bool | `True` when the date is Saturday or Sunday. |
 | `hour` | int | Hour of day (0–23). |
 | `day_of_week` | string | Day name (e.g., Monday, Tuesday). |
+| `month` | int | Month extracted from `date_hour` (1-12). |
+| `is_peak_hour` | int | Engineered indicator where 1 = commute/ski rush hours (07-09, 15-17). |
+| `temp_dewpoint_spread` | float | Engineered temperature minus dew point spread in °F. |
 
 ## Notes
 
