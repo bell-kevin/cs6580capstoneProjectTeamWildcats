@@ -72,6 +72,34 @@ Run the automated test suite:
 pytest -q
 ```
 
+## Sprint 3 modeling workflow
+
+Run the full modeling and evaluation pipeline after generating processed data:
+
+```bash
+python src/data_cleaning.py
+python src/train_model.py
+```
+
+Artifacts produced by `src/train_model.py`:
+
+- `models/champion_model.joblib`
+- `results/model_metrics.csv` (baseline vs. champion metrics)
+- `results/training_summary.json`
+- `results/actual_vs_predicted.svg`
+- `results/residual_plot.svg`
+
+## How to Run the App
+
+Launch the Sprint 4 MVP dashboard locally with Gradio:
+
+```bash
+python src/train_model.py
+python src/app.py
+```
+
+Open the URL displayed by Gradio (typically `http://localhost:7860`) and use the controls to generate real-time traffic predictions from the saved champion model.
+
 ### Data audit artifact
 
 A full inventory of every CSV and Excel source currently in the repository is documented at:
