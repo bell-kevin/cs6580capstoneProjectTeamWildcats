@@ -1,0 +1,23 @@
+# Sprint 3 Readiness Check (as of 2026-02-18)
+
+## Checklist status
+
+| Requirement | Status | Evidence |
+| --- | --- | --- |
+| Feature engineering includes encoding and scaling | ✅ Complete | `src/train_model.py` applies `StandardScaler` to numeric features and `OneHotEncoder` to categorical features in a `ColumnTransformer`. |
+| At least two engineered features | ✅ Complete | `month`, `is_peak_hour`, and `temp_dewpoint_spread` are engineered in `add_engineered_features`. |
+| Data dictionary updated with engineered features | ✅ Complete | `docs/data_dictionary.md` documents `month`, `is_peak_hour`, and `temp_dewpoint_spread`. |
+| Baseline model created and benchmarked | ✅ Complete | `DummyRegressor(strategy="mean")` metrics are saved to `results/model_metrics.csv`. |
+| Reproducible training script in `src/train_model.py` | ✅ Complete | Script reads processed data, splits train/test, trains model, saves artifact to `models/champion_model.joblib`, and writes summaries. |
+| Evaluation metrics generated | ✅ Complete | RMSE, MAE, and R² are calculated and stored in `results/model_metrics.csv` and `results/training_summary.json`. |
+| Evaluation plots generated into `/results` | ✅ Complete | `results/actual_vs_predicted.svg` and `results/residual_plot.svg` are produced by the training script. |
+| Week 1 progress sync (split + baseline recorded) | ✅ Complete | `results/training_summary.json` includes train/test row counts and baseline metrics; tracker file references baseline/champion experiments. |
+| Professionalism: experiment tracking file present | ✅ Complete | `docs/model_experiment_tracking.md` captures baseline/champion setup and metric values. |
+| Commit pulse: 2 commits/member/week | ⚠️ Needs manual confirmation | This cannot be verified from code artifacts alone; confirm on your Git history/Project Board. |
+
+## Current benchmark snapshot
+
+- Baseline DummyRegressor: RMSE **295.82**, MAE **253.32**.
+- Champion RandomForestRegressor: RMSE **102.91**, MAE **59.02**, R² **0.8790**.
+
+The champion model substantially outperforms the baseline benchmark.
