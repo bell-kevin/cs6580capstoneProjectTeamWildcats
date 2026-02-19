@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.train_model import add_engineered_features, train_and_evaluate
+from src.train_model import add_engineered_features, split_dataset, train_and_evaluate
 
 
 def _sample_processed_dataset(rows: int = 120) -> pd.DataFrame:
@@ -48,7 +48,45 @@ def test_train_and_evaluate_writes_artifacts(tmp_path: Path) -> None:
 
     assert summary["train_rows"] == 135
     assert summary["test_rows"] == 45
+    assert summary["split_strategy"] == "random"
     assert Path(summary["model_artifact"]).exists()
     assert Path(summary["metrics_file"]).exists()
     assert Path(summary["actual_vs_predicted_plot"]).exists()
     assert Path(summary["residual_plot"]).exists()
+    assert "time_split_champion_rmse" in summary
+    assert "random_minus_time_r2" in summary
+
+
+def test_split_dataset_time_strategy_is_chronological() -> None:
+    data = _sample_processed_dataset(20)
+    engineered = add_engineered_features(data)
+    features = engineered[["lane_count", "temp_f"]]
+    target = engineered["traffic_count_total"]
+
+    X_train, X_test, y_train, y_test = split_dataset(
+        features=features,
+        target=target,
+        timestamps=engineered["date_hour"],
+        test_size=0.25,
+        split_strategy="time",
+    )
+
+    assert len(X_train) == 15
+    assert len(X_test) == 5
+    assert y_train.index.max() < y_test.index.min()
+
+
+def test_train_and_evaluate_time_strategy_skips_random_comparison(tmp_path: Path) -> None:
+    source = tmp_path / "processed.csv"
+    _sample_processed_dataset(120).to_csv(source, index=False)
+
+    summary = train_and_evaluate(
+        input_file=source,
+        model_dir=tmp_path / "models",
+        results_dir=tmp_path / "results",
+        test_size=0.2,
+        split_strategy="time",
+    )
+
+    assert summary["split_strategy"] == "time"
+    assert "time_split_champion_rmse" not in summary
