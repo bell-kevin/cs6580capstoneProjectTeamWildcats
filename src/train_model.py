@@ -18,6 +18,8 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 TARGET_COLUMN = "traffic_count_total"
 RANDOM_STATE = 42
+DEFAULT_SPLIT_STRATEGY = "random"
+VALID_SPLIT_STRATEGIES = {"random", "time"}
 
 
 def add_engineered_features(data: pd.DataFrame) -> pd.DataFrame:
@@ -134,29 +136,68 @@ def regression_metrics(y_true: pd.Series, y_pred: pd.Series | list[float]) -> di
     }
 
 
-def train_and_evaluate(
-    input_file: Path,
-    model_dir: Path = Path("models"),
-    results_dir: Path = Path("results"),
-    test_size: float = 0.2,
-) -> dict[str, float | str | int]:
-    if not input_file.exists():
-        raise FileNotFoundError(
-            f"{input_file} was not found. Run `python src/data_cleaning.py` first to build processed data."
+def split_dataset(
+    features: pd.DataFrame,
+    target: pd.Series,
+    timestamps: pd.Series,
+    test_size: float,
+    split_strategy: str,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+    if split_strategy not in VALID_SPLIT_STRATEGIES:
+        raise ValueError(
+            f"Unsupported split strategy {split_strategy!r}. Use one of {sorted(VALID_SPLIT_STRATEGIES)}."
         )
 
-    model_dir.mkdir(parents=True, exist_ok=True)
-    results_dir.mkdir(parents=True, exist_ok=True)
+    if not 0 < test_size < 1:
+        raise ValueError(f"test_size must be between 0 and 1, received {test_size}.")
 
-    data = pd.read_csv(input_file)
-    engineered = add_engineered_features(data)
-    features, target = build_features_and_target(engineered)
+    if split_strategy == "random":
+        return train_test_split(
+            features,
+            target,
+            test_size=test_size,
+            random_state=RANDOM_STATE,
+        )
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        features,
-        target,
+    chronological = pd.DataFrame(
+        {
+            "timestamp": pd.to_datetime(timestamps, errors="coerce"),
+            "feature_row": features.index,
+            "target": target,
+        }
+    ).dropna(subset=["timestamp"])
+
+    if chronological.empty:
+        raise ValueError("Time-based split requires at least one valid timestamp.")
+
+    chronological = chronological.sort_values("timestamp")
+    split_index = max(int(len(chronological) * (1 - test_size)), 1)
+    split_index = min(split_index, len(chronological) - 1)
+
+    train_idx = chronological.iloc[:split_index]["feature_row"]
+    test_idx = chronological.iloc[split_index:]["feature_row"]
+
+    return (
+        features.loc[train_idx],
+        features.loc[test_idx],
+        target.loc[train_idx],
+        target.loc[test_idx],
+    )
+
+
+def evaluate_split(
+    features: pd.DataFrame,
+    target: pd.Series,
+    timestamps: pd.Series,
+    test_size: float,
+    split_strategy: str,
+) -> dict[str, float | int | str]:
+    X_train, X_test, y_train, y_test = split_dataset(
+        features=features,
+        target=target,
+        timestamps=timestamps,
         test_size=test_size,
-        random_state=RANDOM_STATE,
+        split_strategy=split_strategy,
     )
 
     baseline = DummyRegressor(strategy="mean")
@@ -169,22 +210,104 @@ def train_and_evaluate(
     champion_predictions = pipeline.predict(X_test)
     champion_scores = regression_metrics(y_test, champion_predictions)
 
+    return {
+        "split_strategy": split_strategy,
+        "train_rows": int(len(X_train)),
+        "test_rows": int(len(X_test)),
+        "baseline_rmse": baseline_scores["rmse"],
+        "baseline_mae": baseline_scores["mae"],
+        "baseline_r2": baseline_scores["r2"],
+        "champion_rmse": champion_scores["rmse"],
+        "champion_mae": champion_scores["mae"],
+        "champion_r2": champion_scores["r2"],
+        "pipeline": pipeline,
+        "y_test": y_test,
+        "champion_predictions": champion_predictions,
+    }
+
+
+def train_and_evaluate(
+    input_file: Path,
+    model_dir: Path = Path("models"),
+    results_dir: Path = Path("results"),
+    test_size: float = 0.2,
+    split_strategy: str = DEFAULT_SPLIT_STRATEGY,
+    compare_with_time_split: bool = True,
+) -> dict[str, float | str | int]:
+    if not input_file.exists():
+        raise FileNotFoundError(
+            f"{input_file} was not found. Run `python src/data_cleaning.py` first to build processed data."
+        )
+
+    model_dir.mkdir(parents=True, exist_ok=True)
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    data = pd.read_csv(input_file)
+    engineered = add_engineered_features(data)
+    features, target = build_features_and_target(engineered)
+    split_results = evaluate_split(
+        features=features,
+        target=target,
+        timestamps=engineered["date_hour"],
+        test_size=test_size,
+        split_strategy=split_strategy,
+    )
+
+    comparison_results: dict[str, float | str] = {}
+    if compare_with_time_split and split_strategy == "random":
+        time_results = evaluate_split(
+            features=features,
+            target=target,
+            timestamps=engineered["date_hour"],
+            test_size=test_size,
+            split_strategy="time",
+        )
+        comparison_results = {
+            "time_split_champion_rmse": float(time_results["champion_rmse"]),
+            "time_split_champion_mae": float(time_results["champion_mae"]),
+            "time_split_champion_r2": float(time_results["champion_r2"]),
+            "random_minus_time_rmse": float(split_results["champion_rmse"])
+            - float(time_results["champion_rmse"]),
+            "random_minus_time_mae": float(split_results["champion_mae"])
+            - float(time_results["champion_mae"]),
+            "random_minus_time_r2": float(split_results["champion_r2"])
+            - float(time_results["champion_r2"]),
+        }
+
     artifact_path = model_dir / "champion_model.joblib"
-    joblib.dump(pipeline, artifact_path)
+    joblib.dump(split_results["pipeline"], artifact_path)
 
     metrics_df = pd.DataFrame(
         [
-            {"model": "baseline_dummy_mean", **baseline_scores},
-            {"model": "champion_random_forest", **champion_scores},
+            {
+                "split_strategy": split_results["split_strategy"],
+                "model": "baseline_dummy_mean",
+                "rmse": split_results["baseline_rmse"],
+                "mae": split_results["baseline_mae"],
+                "r2": split_results["baseline_r2"],
+            },
+            {
+                "split_strategy": split_results["split_strategy"],
+                "model": "champion_random_forest",
+                "rmse": split_results["champion_rmse"],
+                "mae": split_results["champion_mae"],
+                "r2": split_results["champion_r2"],
+            },
         ]
     )
     metrics_file = results_dir / "model_metrics.csv"
     metrics_df.to_csv(metrics_file, index=False)
 
     plt.figure(figsize=(8, 6))
-    plt.scatter(y_test, champion_predictions, alpha=0.3)
-    lower = min(float(y_test.min()), float(min(champion_predictions)))
-    upper = max(float(y_test.max()), float(max(champion_predictions)))
+    plt.scatter(split_results["y_test"], split_results["champion_predictions"], alpha=0.3)
+    lower = min(
+        float(split_results["y_test"].min()),
+        float(min(split_results["champion_predictions"])),
+    )
+    upper = max(
+        float(split_results["y_test"].max()),
+        float(max(split_results["champion_predictions"])),
+    )
     plt.plot([lower, upper], [lower, upper], linestyle="--")
     plt.xlabel("Actual traffic_count_total")
     plt.ylabel("Predicted traffic_count_total")
@@ -194,9 +317,9 @@ def train_and_evaluate(
     plt.savefig(actual_plot)
     plt.close()
 
-    residuals = y_test - champion_predictions
+    residuals = split_results["y_test"] - split_results["champion_predictions"]
     plt.figure(figsize=(8, 6))
-    plt.scatter(champion_predictions, residuals, alpha=0.3)
+    plt.scatter(split_results["champion_predictions"], residuals, alpha=0.3)
     plt.axhline(0.0, linestyle="--")
     plt.xlabel("Predicted traffic_count_total")
     plt.ylabel("Residual (actual - predicted)")
@@ -207,18 +330,20 @@ def train_and_evaluate(
     plt.close()
 
     summary = {
-        "train_rows": int(len(X_train)),
-        "test_rows": int(len(X_test)),
-        "baseline_rmse": baseline_scores["rmse"],
-        "baseline_mae": baseline_scores["mae"],
-        "champion_rmse": champion_scores["rmse"],
-        "champion_mae": champion_scores["mae"],
-        "champion_r2": champion_scores["r2"],
+        "split_strategy": split_results["split_strategy"],
+        "train_rows": split_results["train_rows"],
+        "test_rows": split_results["test_rows"],
+        "baseline_rmse": split_results["baseline_rmse"],
+        "baseline_mae": split_results["baseline_mae"],
+        "champion_rmse": split_results["champion_rmse"],
+        "champion_mae": split_results["champion_mae"],
+        "champion_r2": split_results["champion_r2"],
         "model_artifact": str(artifact_path),
         "metrics_file": str(metrics_file),
         "actual_vs_predicted_plot": str(actual_plot),
         "residual_plot": str(residual_plot),
     }
+    summary.update(comparison_results)
 
     summary_file = results_dir / "training_summary.json"
     summary_file.write_text(json.dumps(summary, indent=2))
@@ -237,6 +362,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model-dir", type=Path, default=Path("models"))
     parser.add_argument("--results-dir", type=Path, default=Path("results"))
     parser.add_argument("--test-size", type=float, default=0.2)
+    parser.add_argument(
+        "--split-strategy",
+        choices=sorted(VALID_SPLIT_STRATEGIES),
+        default=DEFAULT_SPLIT_STRATEGY,
+        help="random uses shuffled rows; time trains on earliest rows and tests on latest rows.",
+    )
+    parser.add_argument(
+        "--skip-time-comparison",
+        action="store_true",
+        help="Skip time-split comparison when using the random split strategy.",
+    )
     return parser.parse_args()
 
 
@@ -247,6 +383,8 @@ def main() -> None:
         model_dir=args.model_dir,
         results_dir=args.results_dir,
         test_size=args.test_size,
+        split_strategy=args.split_strategy,
+        compare_with_time_split=not args.skip_time_comparison,
     )
     print(json.dumps(summary, indent=2))
 
