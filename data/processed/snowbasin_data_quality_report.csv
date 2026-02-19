@@ -1,0 +1,8 @@
+metric,value
+row_count,69720
+date_hour_min,2015-01-01 00:00:00
+date_hour_max,2024-12-31 23:00:00
+traffic_null_count,0
+weather_missing_rows,49677
+holiday_rows,1920
+weekend_rows,19704
