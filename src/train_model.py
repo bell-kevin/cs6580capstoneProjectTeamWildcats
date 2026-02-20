@@ -89,6 +89,14 @@ def add_engineered_features(data: pd.DataFrame) -> pd.DataFrame:
         how="left"
     )
 
+    # Engineer lag features for traffic_count_total
+    lag_hours = [1, 2, 3, 6, 12, 24, 168]
+
+    for lag in lag_hours:
+        engineered[f"traffic_lag_{lag}"] = (
+            engineered[TARGET_COLUMN].shift(lag)
+        )
+
     return engineered
 
 
@@ -110,6 +118,13 @@ def build_features_and_target(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Seri
         "is_peak_hour",
         "temp_dewpoint_spread",
         "distance_to_holiday_weekend",
+        "traffic_lag_1",
+        "traffic_lag_2",
+        "traffic_lag_3",
+        "traffic_lag_6",
+        "traffic_lag_12",
+        "traffic_lag_24",
+        "traffic_lag_168",
     }
     missing = required - set(data.columns)
     if missing:
@@ -131,6 +146,13 @@ def build_features_and_target(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Seri
         "is_peak_hour",
         "day_of_week",
         "distance_to_holiday_weekend",
+        "traffic_lag_1",
+        "traffic_lag_2",
+        "traffic_lag_3",
+        "traffic_lag_6",
+        "traffic_lag_12",
+        "traffic_lag_24",
+        "traffic_lag_168",
     ]
     return data[feature_columns], data[TARGET_COLUMN]
 
@@ -151,6 +173,13 @@ def build_model_pipeline() -> Pipeline:
         "is_federal_holiday",
         "is_peak_hour",
         "distance_to_holiday_weekend",
+        "traffic_lag_1",
+        "traffic_lag_2",
+        "traffic_lag_3",
+        "traffic_lag_6",
+        "traffic_lag_12",
+        "traffic_lag_24",
+        "traffic_lag_168",
     ]
     categorical_features = ["day_of_week"]
 
