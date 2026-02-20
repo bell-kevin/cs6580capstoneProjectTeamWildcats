@@ -30,6 +30,65 @@ def add_engineered_features(data: pd.DataFrame) -> pd.DataFrame:
     engineered["is_peak_hour"] = engineered["hour"].isin([7, 8, 9, 15, 16, 17]).astype(int)
     engineered["temp_dewpoint_spread"] = engineered["temp_f"] - engineered["dewpoint_f"]
 
+    # Engineer Numeric columns for  Holdiday Weekends and Distance From a Holiday Weekend
+    daily = (
+        engineered.groupby("date")[["is_federal_holiday"]]
+        .max()
+        .sort_index()
+        .reset_index()
+    )
+
+    daily["date"] = pd.to_datetime(daily["date"])
+    daily["weekday"] = daily["date"].dt.dayofweek  
+
+    daily["is_holiday_weekend"] = False
+
+    holiday_dates = daily.loc[daily["is_federal_holiday"], "date"]
+
+    for holiday_date in holiday_dates:
+        wd = holiday_date.dayofweek
+
+        if wd <= 2:
+            saturday = holiday_date - pd.Timedelta(days=(wd + 2))
+            sunday = saturday + pd.Timedelta(days=1)
+            window_start = saturday
+            window_end = holiday_date
+
+        elif wd <= 4:
+            saturday = holiday_date + pd.Timedelta(days=(5 - wd))
+            sunday = saturday + pd.Timedelta(days=1)
+            window_start = holiday_date
+            window_end = sunday
+
+        else:
+            saturday = holiday_date - pd.Timedelta(days=(wd - 5))
+            sunday = saturday + pd.Timedelta(days=1)
+            window_start = saturday
+            window_end = sunday
+
+        daily.loc[
+            (daily["date"] >= window_start) &
+            (daily["date"] <= window_end),
+            "is_holiday_weekend"
+        ] = True
+
+    daily["last_hw"] = daily["date"].where(daily["is_holiday_weekend"]).ffill()
+    daily["days_since"] = (daily["date"] - daily["last_hw"]).dt.days
+
+    daily["next_hw"] = daily["date"].where(daily["is_holiday_weekend"]).bfill()
+    daily["days_until"] = (daily["next_hw"] - daily["date"]).dt.days
+
+    daily["distance_to_holiday_weekend"] = daily[
+        ["days_since", "days_until"]
+    ].min(axis=1)
+
+    # Merge back to hourly
+    engineered = engineered.merge(
+        daily[["date", "distance_to_holiday_weekend"]],
+        on="date",
+        how="left"
+    )
+
     return engineered
 
 
