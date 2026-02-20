@@ -109,6 +109,7 @@ def build_features_and_target(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Seri
         "month",
         "is_peak_hour",
         "temp_dewpoint_spread",
+        "distance_to_holiday_weekend",
     }
     missing = required - set(data.columns)
     if missing:
@@ -129,6 +130,7 @@ def build_features_and_target(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Seri
         "is_federal_holiday",
         "is_peak_hour",
         "day_of_week",
+        "distance_to_holiday_weekend",
     ]
     return data[feature_columns], data[TARGET_COLUMN]
 
@@ -148,6 +150,7 @@ def build_model_pipeline() -> Pipeline:
         "is_weekend",
         "is_federal_holiday",
         "is_peak_hour",
+        "distance_to_holiday_weekend",
     ]
     categorical_features = ["day_of_week"]
 
