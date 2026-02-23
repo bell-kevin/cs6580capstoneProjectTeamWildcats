@@ -25,6 +25,11 @@ VALID_SPLIT_STRATEGIES = {"random", "time"}
 def add_engineered_features(data: pd.DataFrame) -> pd.DataFrame:
     engineered = data.copy()
     engineered["date_hour"] = pd.to_datetime(engineered["date_hour"], errors="coerce")
+    engineered["date"] = (
+        pd.to_datetime(engineered["date"], errors="coerce")
+        if "date" in engineered.columns
+        else engineered["date_hour"].dt.normalize()
+    )
 
     engineered["month"] = engineered["date_hour"].dt.month
     engineered["is_peak_hour"] = engineered["hour"].isin([7, 8, 9, 15, 16, 17]).astype(int)
@@ -38,7 +43,7 @@ def add_engineered_features(data: pd.DataFrame) -> pd.DataFrame:
         .reset_index()
     )
 
-    daily["date"] = pd.to_datetime(daily["date"])
+    daily["date"] = pd.to_datetime(daily["date"], errors="coerce").dt.normalize()
     daily["weekday"] = daily["date"].dt.dayofweek  
 
     daily["is_holiday_weekend"] = False

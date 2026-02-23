@@ -35,6 +35,16 @@ def test_add_engineered_features_adds_expected_columns() -> None:
     assert engineered["month"].between(1, 12).all()
 
 
+def test_add_engineered_features_uses_existing_date_column_with_consistent_type() -> None:
+    data = _sample_processed_dataset(24)
+    data["date"] = data["date_hour"].dt.strftime("%Y-%m-%d")
+
+    engineered = add_engineered_features(data)
+
+    assert pd.api.types.is_datetime64_any_dtype(engineered["date"])
+    assert engineered["date"].dt.hour.eq(0).all()
+
+
 def test_train_and_evaluate_writes_artifacts(tmp_path: Path) -> None:
     source = tmp_path / "processed.csv"
     _sample_processed_dataset(180).to_csv(source, index=False)
