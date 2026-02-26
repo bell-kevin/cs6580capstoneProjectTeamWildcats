@@ -219,3 +219,7 @@ data/processed/*
 # Ignore API keys & environment variables
 .env
 Keys.json
+
+# Ignore serialized model artifacts
+*.pkl
+*.joblib
