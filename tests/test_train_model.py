@@ -2,7 +2,12 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.train_model import add_engineered_features, split_dataset, train_and_evaluate
+from src.train_model import (
+    add_engineered_features,
+    drop_missing_target_rows,
+    split_dataset,
+    train_and_evaluate,
+)
 
 
 def _sample_processed_dataset(rows: int = 120) -> pd.DataFrame:
@@ -59,6 +64,7 @@ def test_train_and_evaluate_writes_artifacts(tmp_path: Path) -> None:
     assert summary["train_rows"] == 135
     assert summary["test_rows"] == 45
     assert summary["split_strategy"] == "random"
+    assert summary["dropped_target_rows"] == 0
     assert Path(summary["model_artifact"]).exists()
     assert Path(summary["metrics_file"]).exists()
     assert Path(summary["actual_vs_predicted_plot"]).exists()
@@ -85,6 +91,17 @@ def test_split_dataset_time_strategy_is_chronological() -> None:
     assert len(X_test) == 5
     assert y_train.index.max() < y_test.index.min()
 
+
+
+def test_drop_missing_target_rows_removes_null_response_values() -> None:
+    data = _sample_processed_dataset(10)
+    data.loc[[1, 3], "traffic_count_total"] = float("nan")
+
+    filtered, dropped_count = drop_missing_target_rows(data)
+
+    assert dropped_count == 2
+    assert len(filtered) == 8
+    assert filtered["traffic_count_total"].notna().all()
 
 def test_train_and_evaluate_time_strategy_skips_random_comparison(tmp_path: Path) -> None:
     source = tmp_path / "processed.csv"

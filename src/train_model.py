@@ -162,6 +162,18 @@ def build_features_and_target(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Seri
     return data[feature_columns], data[TARGET_COLUMN]
 
 
+def drop_missing_target_rows(data: pd.DataFrame) -> tuple[pd.DataFrame, int]:
+    """Exclude records with missing response values before model fitting.
+
+    The model can safely impute missing feature values, but imputing the response
+    variable would create synthetic traffic trends and bias evaluation metrics.
+    """
+
+    filtered = data.dropna(subset=[TARGET_COLUMN]).copy()
+    dropped_count = int(len(data) - len(filtered))
+    return filtered, dropped_count
+
+
 def build_model_pipeline() -> Pipeline:
     numeric_features = [
         "lane_count",
@@ -340,6 +352,13 @@ def train_and_evaluate(
 
     data = pd.read_csv(input_file)
     engineered = add_engineered_features(data)
+    engineered, dropped_target_rows = drop_missing_target_rows(engineered)
+
+    if engineered.empty:
+        raise ValueError(
+            "No training rows available after removing records with missing target values."
+        )
+
     features, target = build_features_and_target(engineered)
     split_results = evaluate_split(
         features=features,
@@ -429,6 +448,7 @@ def train_and_evaluate(
         "split_strategy": split_results["split_strategy"],
         "train_rows": split_results["train_rows"],
         "test_rows": split_results["test_rows"],
+        "dropped_target_rows": dropped_target_rows,
         "baseline_rmse": split_results["baseline_rmse"],
         "baseline_mae": split_results["baseline_mae"],
         "champion_rmse": split_results["champion_rmse"],
