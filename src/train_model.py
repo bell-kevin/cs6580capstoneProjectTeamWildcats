@@ -366,6 +366,15 @@ def train_and_evaluate(
         )
 
     features, target = build_features_and_target(engineered)
+
+    # Arrange data for, train, and save LSTM model
+    segments = split_into_continuous_segments(engineered)
+    feature_columns = features.columns.tolist()
+    X, y = build_sequences(segments, feature_columns, TARGET_COLUMN)
+    print(f"Built {len(X)} sequences of length 48 hours with a 72 hour horizon for RNN/LSTM model.")
+    lstm_model = train_lstm_model(X, y)
+    torch.save(lstm_model.state_dict(), model_dir / "champion_lstm.pth")
+
     split_results = evaluate_split(
         features=features,
         target=target,
