@@ -95,7 +95,7 @@ def add_engineered_features(data: pd.DataFrame) -> pd.DataFrame:
     )
 
     # Engineer lag features for traffic_count_total
-    lag_hours = [1, 2, 3, 6, 12, 24, 168]
+    lag_hours = [0, 1, 2, 3, 6, 12, 24, 168]
 
     for lag in lag_hours:
         engineered[f"traffic_lag_{lag}"] = (
