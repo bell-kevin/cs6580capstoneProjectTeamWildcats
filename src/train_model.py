@@ -18,7 +18,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 TARGET_COLUMN = "traffic_count_total"
 RANDOM_STATE = 42
-DEFAULT_SPLIT_STRATEGY = "random"
+DEFAULT_SPLIT_STRATEGY = "time"
 VALID_SPLIT_STRATEGIES = {"random", "time"}
 
 
