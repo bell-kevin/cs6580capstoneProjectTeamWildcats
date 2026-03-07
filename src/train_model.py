@@ -419,7 +419,7 @@ class TrafficLSTM(nn.Module):
     def __init__(self, input_size, hidden_size=64, horizon=72):
         super().__init__()
        
-        self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=2, batch_first=True)
+        self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=2, dropout=0.2, batch_first=True)
         self.fc = nn.Linear(hidden_size, horizon)
 
     def forward(self, x):
