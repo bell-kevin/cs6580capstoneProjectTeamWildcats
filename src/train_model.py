@@ -99,12 +99,22 @@ def add_engineered_features(data: pd.DataFrame) -> pd.DataFrame:
     )
 
     # Engineer lag features for traffic_count_total
-    lag_hours = [0, 1, 2, 3, 6, 12, 24, 168]
+    lag_hours = [1, 2, 3, 6, 12, 24, 168]
 
     for lag in lag_hours:
         engineered[f"traffic_lag_{lag}"] = (
             engineered[TARGET_COLUMN].shift(lag)
         )
+
+    # adding in features that encode cyclical time patterns
+    engineered["hour_sin"] = np.sin(2 * np.pi * engineered["hour"] / 24)
+    engineered["hour_cos"] = np.cos(2 * np.pi * engineered["hour"] / 24)
+
+    engineered["day_of_week_sin"] = np.sin(2 * np.pi * engineered["day_of_week"] / 7)
+    engineered["day_of_week_cos"] = np.cos(2 * np.pi * engineered["day_of_week"] / 7)   
+
+    engineered["month_sin"] = np.sin(2 * np.pi * engineered["month"] / 12)
+    engineered["month_cos"] = np.cos(2 * np.pi * engineered["month"] / 12)      
 
     return engineered
 
@@ -127,7 +137,6 @@ def build_features_and_target(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Seri
         "is_peak_hour",
         "temp_dewpoint_spread",
         "distance_to_holiday_weekend",
-        "traffic_lag_0",
         "traffic_lag_1",
         "traffic_lag_2",
         "traffic_lag_3",
@@ -135,6 +144,12 @@ def build_features_and_target(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Seri
         "traffic_lag_12",
         "traffic_lag_24",
         "traffic_lag_168",
+        "hour_sin",
+        "hour_cos",
+        "day_of_week_sin",
+        "day_of_week_cos",
+        "month_sin",
+        "month_cos",
     }
     missing = required - set(data.columns)
     if missing:
@@ -156,7 +171,6 @@ def build_features_and_target(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Seri
         "is_peak_hour",
         "day_of_week",
         "distance_to_holiday_weekend",
-        "traffic_lag_0",
         "traffic_lag_1",
         "traffic_lag_2",
         "traffic_lag_3",
@@ -164,6 +178,12 @@ def build_features_and_target(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Seri
         "traffic_lag_12",
         "traffic_lag_24",
         "traffic_lag_168",
+        "hour_sin",
+        "hour_cos",
+        "day_of_week_sin",
+        "day_of_week_cos",
+        "month_sin",
+        "month_cos",
     ]
     return data[feature_columns], data[TARGET_COLUMN]
 
@@ -203,6 +223,12 @@ def build_model_pipeline() -> Pipeline:
         "traffic_lag_12",
         "traffic_lag_24",
         "traffic_lag_168",
+        "hour_sin",
+        "hour_cos",
+        "day_of_week_sin",
+        "day_of_week_cos",
+        "month_sin",
+        "month_cos",
     ]
     categorical_features = ["day_of_week"]
 

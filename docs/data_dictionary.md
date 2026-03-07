@@ -32,7 +32,6 @@ This dictionary documents the **joined hourly modeling dataset** produced by `sr
 | `is_peak_hour` | int | Engineered indicator where 1 = commute/ski rush hours (07-09, 15-17). |
 | `temp_dewpoint_spread` | float | Engineered temperature minus dew point spread in °F. |
 | `distance_to_holiday_weekend` | int | Engineered int indicating days since or until (the minimum of the two values) a holiday weekend, which is defined as a federal holiday, the nearest weekend, and the days in between|
-| `traffic_lag_0` | int | Engineered column which is the total traffic count at the current time. |
 | `traffic_lag_1` | int | Engineered column which is the total traffic count an hour before the current time. |
 | `traffic_lag_2` | int | Engineered column which is the total traffic count two hours before the current time. |
 | `traffic_lag_3` | int | Engineered column which is the total traffic count three hours before the current time. |
@@ -40,6 +39,13 @@ This dictionary documents the **joined hourly modeling dataset** produced by `sr
 | `traffic_lag_12` | int | Engineered column which is the total traffic count 12 hours before the current time. |
 | `traffic_lag_24` | int | Engineered column which is the total traffic count 24 hours before the current time. |
 | `traffic_lag_168` | int | Engineered column which is the total traffic count 168 hours before the current time. |
+| `month_sin` | float | Engineered column which is the sine of the month value, representing cyclicality of months
+| `month_cos` | float | Engineered column which is the cosine of the month value, representing cyclicality of months
+| `hour_sin` | float | Engineered column which is the sine of the hour value, representing cyclicality of months
+| `hour_cos` | float | Engineered column which is the cosine of the hour value, representing cyclicality of months
+| `day_of_week_sin` | float | Engineered column which is the sine of the day_of_week value, representing cyclicality of months
+| `day_of_week_cos` | float | Engineered column which is the cosine of the day_of_week value, representing cyclicality of months
+
 
 
 ## Notes
