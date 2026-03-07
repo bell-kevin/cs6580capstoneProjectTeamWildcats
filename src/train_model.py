@@ -561,7 +561,30 @@ class TrafficLSTM(nn.Module):
         output = self.fc(last_hidden)
         return output
 
+def train_lstm_model(X, y, epochs=10, batch_size=64):
+    dataset = TrafficDataset(X, y)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
+    model = TrafficLSTM(input_size=X.shape[2])
+
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+    for epoch in range(epochs):
+        
+        epoch_loss = 0.0
+
+        for batch_X, batch_y in dataloader:
+            optimizer.zero_grad()
+            predictions = model(batch_X)
+            loss = criterion(predictions, batch_y)
+            loss.backward()
+            optimizer.step()
+            epoch_loss += loss.item()
+
+        print(f"Epoch {epoch+1}/{epochs}, Loss: {epoch_loss:.5f}")
+    
+    return model
 
 def main() -> None:
     args = parse_args()
