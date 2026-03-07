@@ -15,6 +15,10 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+import numpy
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
 
 TARGET_COLUMN = "traffic_count_total"
 RANDOM_STATE = 42
@@ -493,6 +497,58 @@ def parse_args() -> argparse.Namespace:
     )
     return parser.parse_args()
 
+
+# Functions necessary for rnn/lstm model
+
+# This ensures all rows in a sequence fed into the model are continuous
+# It returns an array of dataframes, where each dataframe is a continuous sequence of rows with no gaps in the date_hour column.
+def split_into_continuous_segments(df: pd.DataFrame) -> list[pd.DataFrame]:
+    df = df.sort_values("date_hour")()
+
+    df["date_hour"] = pd.to_datetime(df["date_hour"])
+    df["time_diff"] = df["date_hour"].diff().dt.total_seconds() / 3600
+    
+    # Start a new sequence whenever the time difference between consecutive rows is over 1 hour
+    df["segment_id"] = (df["time_diff"] > 1).cumsum()
+
+    segments = []
+
+    for _, seg in df.groupby("segment_id"):
+        seg = seg.drop(columns=["time_diff", "segment_id"])
+        if len(seg) >= 120:
+            segments.append(seg)    
+
+    return segments
+
+# Create sliding window sequences within each segment, separating features and target and returning feature and target arrays suitable for RNN/LSTM 
+def build_sequences(segments: list[pd.DataFrame], feature_cols: list[str], target_col: str, seq_length:int = 48, horizon:int = 72):
+    X, y = [], []
+
+    for seg in segments:
+        features = seg[feature_cols].values
+        target = seg[target_col].values
+
+        for i in range(seq_length, len(seg) - horizon):
+            # the features window for one sample/window is the previous seq_length rows(48), and the target is the next horizon(72) rows after that
+            X.append(features[i-seq_length:i])
+            y.append(target[i:i+horizon])
+    
+    return np.array(X), np.array(y)
+
+# Create pytorch traffic dataset for RNN/LSTM
+class TrafficDataset(Dataset):
+    def __init__(self, X: np.ndarray, y: np.ndarray):
+        self.X = torch.tensor(X, dtype=torch.float32)
+        self.y = torch.tensor(y, dtype=torch.float32)
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        return self.X[idx], self.y[idx]
+    
+
+#
 
 def main() -> None:
     args = parse_args()
