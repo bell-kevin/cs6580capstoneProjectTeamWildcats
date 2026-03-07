@@ -32,6 +32,7 @@ This dictionary documents the **joined hourly modeling dataset** produced by `sr
 | `is_peak_hour` | int | Engineered indicator where 1 = commute/ski rush hours (07-09, 15-17). |
 | `temp_dewpoint_spread` | float | Engineered temperature minus dew point spread in °F. |
 | `distance_to_holiday_weekend` | int | Engineered int indicating days since or until (the minimum of the two values) a holiday weekend, which is defined as a federal holiday, the nearest weekend, and the days in between|
+| `traffic_lag_0` | int | Engineered column which is the total traffic count at the current time. |
 | `traffic_lag_1` | int | Engineered column which is the total traffic count an hour before the current time. |
 | `traffic_lag_2` | int | Engineered column which is the total traffic count two hours before the current time. |
 | `traffic_lag_3` | int | Engineered column which is the total traffic count three hours before the current time. |
