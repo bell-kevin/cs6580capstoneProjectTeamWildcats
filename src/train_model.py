@@ -15,7 +15,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-import numpy
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -339,6 +339,93 @@ def evaluate_split(
         "champion_predictions": champion_predictions,
     }
 
+# Functions necessary for rnn/lstm model
+
+# This ensures all rows in a sequence fed into the model are continuous
+# It returns an array of dataframes, where each dataframe is a continuous sequence of rows with no gaps in the date_hour column.
+def split_into_continuous_segments(df: pd.DataFrame) -> list[pd.DataFrame]:
+    df = df.sort_values("date_hour").copy()
+
+    df["date_hour"] = pd.to_datetime(df["date_hour"])
+    df["time_diff"] = df["date_hour"].diff().dt.total_seconds() / 3600
+    
+    # Start a new sequence whenever the time difference between consecutive rows is over 1 hour
+    df["segment_id"] = (df["time_diff"] > 1).cumsum()
+
+    segments = []
+
+    for _, seg in df.groupby("segment_id"):
+        seg = seg.drop(columns=["time_diff", "segment_id"])
+        if len(seg) >= 121:
+            segments.append(seg)    
+
+    return segments
+
+# Create sliding window sequences within each segment, separating features and target and returning feature and target arrays suitable for RNN/LSTM 
+def build_sequences(segments: list[pd.DataFrame], feature_cols: list[str], target_col: str, seq_length:int = 48, horizon:int = 72):
+    X, y = [], []
+
+    for seg in segments:
+        features = seg[feature_cols].values
+        target = seg[target_col].values
+
+        for i in range(seq_length, len(seg) - horizon):
+            # the features window for one sample/window is the previous seq_length rows(48), and the target is the next horizon(72) rows after that
+            X.append(features[i-seq_length:i])
+            y.append(target[i:i+horizon])
+    
+    return np.array(X), np.array(y)
+
+# Create pytorch traffic dataset for RNN/LSTM
+class TrafficDataset(Dataset):
+    def __init__(self, X: np.ndarray, y: np.ndarray):
+        self.X = torch.tensor(X, dtype=torch.float32)
+        self.y = torch.tensor(y, dtype=torch.float32)
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        return self.X[idx], self.y[idx]
+    
+# Define LSTM model for traffic prediction
+class TrafficLSTM(nn.Module):
+    def __init__(self, input_size, hidden_size=64, horizon=72):
+        super().__init__()
+       
+        self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=2, batch_first=True)
+        self.fc = nn.Linear(hidden_size, horizon)
+
+    def forward(self, x):
+        lstm_out, _ = self.lstm(x)
+        last_hidden = lstm_out[:, -1, :]
+        output = self.fc(last_hidden)
+        return output
+
+def train_lstm_model(X, y, epochs=10, batch_size=64):
+    dataset = TrafficDataset(X, y)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+    model = TrafficLSTM(input_size=X.shape[2])
+
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+    for epoch in range(epochs):
+        
+        epoch_loss = 0.0
+
+        for batch_X, batch_y in dataloader:
+            optimizer.zero_grad()
+            predictions = model(batch_X)
+            loss = criterion(predictions, batch_y)
+            loss.backward()
+            optimizer.step()
+            epoch_loss += loss.item()
+
+        print(f"Epoch {epoch+1}/{epochs}, Loss: {epoch_loss:.5f}")
+    
+    return model
 
 def train_and_evaluate(
     input_file: Path,
@@ -370,10 +457,29 @@ def train_and_evaluate(
     # Arrange data for, train, and save LSTM model
     segments = split_into_continuous_segments(engineered)
     feature_columns = features.columns.tolist()
-    X, y = build_sequences(segments, feature_columns, TARGET_COLUMN)
-    print(f"Built {len(X)} sequences of length 48 hours with a 72 hour horizon for RNN/LSTM model.")
-    lstm_model = train_lstm_model(X, y)
+    X_seq, y_seq = build_sequences(segments, feature_columns, TARGET_COLUMN)
+    X_train_seq, X_test_seq, y_train_seq, y_test_seq = train_test_split(X_seq, y_seq, test_size=test_size, shuffle=False)
+    print(f"Built {len(X_train_seq)} training sequences and {len(X_test_seq)} testing sequences of length 48 hours with a 72 hour horizon for RNN/LSTM model.")
+    lstm_model = train_lstm_model(X_train_seq, y_train_seq)
     torch.save(lstm_model.state_dict(), model_dir / "champion_lstm.pth")
+
+    # Evaluate LSTM model
+    lstm_model.eval()
+    X_test_tensor = torch.tensor(X_test_seq, dtype=torch.float32)
+    with torch.no_grad():
+        lstm_predictions = lstm_model(X_test_tensor).cpu().numpy()
+
+    # Assess LSTM
+    y_true_lstm = y_test_seq.flatten()
+    y_pred_lstm = lstm_predictions.flatten()     
+
+    lstm_rmse = np.sqrt(mean_squared_error(y_true_lstm, y_pred_lstm))
+    lstm_mae = mean_absolute_error(y_true_lstm, y_pred_lstm)
+    lstm_r2 = r2_score(y_true_lstm, y_pred_lstm)
+
+    print("LSTM RMSE:", lstm_rmse)
+    print("LSTM MAE:", lstm_mae)
+    print("LSTM R2:", lstm_r2)
 
     split_results = evaluate_split(
         features=features,
@@ -423,6 +529,13 @@ def train_and_evaluate(
                 "mae": split_results["champion_mae"],
                 "r2": split_results["champion_r2"],
             },
+            {
+            "split_strategy": "sequence",
+            "model": "lstm_model",
+            "rmse": lstm_rmse,
+            "mae": lstm_mae,
+            "r2": lstm_r2,
+        }
         ]
     )
     metrics_file = results_dir / "model_metrics.csv"
@@ -505,95 +618,6 @@ def parse_args() -> argparse.Namespace:
         help="Skip time-split comparison when using the random split strategy.",
     )
     return parser.parse_args()
-
-
-# Functions necessary for rnn/lstm model
-
-# This ensures all rows in a sequence fed into the model are continuous
-# It returns an array of dataframes, where each dataframe is a continuous sequence of rows with no gaps in the date_hour column.
-def split_into_continuous_segments(df: pd.DataFrame) -> list[pd.DataFrame]:
-    df = df.sort_values("date_hour")()
-
-    df["date_hour"] = pd.to_datetime(df["date_hour"])
-    df["time_diff"] = df["date_hour"].diff().dt.total_seconds() / 3600
-    
-    # Start a new sequence whenever the time difference between consecutive rows is over 1 hour
-    df["segment_id"] = (df["time_diff"] > 1).cumsum()
-
-    segments = []
-
-    for _, seg in df.groupby("segment_id"):
-        seg = seg.drop(columns=["time_diff", "segment_id"])
-        if len(seg) >= 120:
-            segments.append(seg)    
-
-    return segments
-
-# Create sliding window sequences within each segment, separating features and target and returning feature and target arrays suitable for RNN/LSTM 
-def build_sequences(segments: list[pd.DataFrame], feature_cols: list[str], target_col: str, seq_length:int = 48, horizon:int = 72):
-    X, y = [], []
-
-    for seg in segments:
-        features = seg[feature_cols].values
-        target = seg[target_col].values
-
-        for i in range(seq_length, len(seg) - horizon):
-            # the features window for one sample/window is the previous seq_length rows(48), and the target is the next horizon(72) rows after that
-            X.append(features[i-seq_length:i])
-            y.append(target[i:i+horizon])
-    
-    return np.array(X), np.array(y)
-
-# Create pytorch traffic dataset for RNN/LSTM
-class TrafficDataset(Dataset):
-    def __init__(self, X: np.ndarray, y: np.ndarray):
-        self.X = torch.tensor(X, dtype=torch.float32)
-        self.y = torch.tensor(y, dtype=torch.float32)
-
-    def __len__(self):
-        return len(self.X)
-
-    def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
-    
-# Define LSTM model for traffic prediction
-class TrafficLSTM(nn.Module):
-    def __init__(self, input_size, hidden_size=64, horizon=72):
-        super().__init__()
-       
-        self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=2, batch_first=True)
-        self.fc = nn.Linear(hidden_size, horizon)
-
-    def forward(self, x):
-        lstm_out, _ = self.lstm(x)
-        last_hidden = lstm_out[:, -1, :]
-        output = self.fc(last_hidden)
-        return output
-
-def train_lstm_model(X, y, epochs=10, batch_size=64):
-    dataset = TrafficDataset(X, y)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-
-    model = TrafficLSTM(input_size=X.shape[2])
-
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-
-    for epoch in range(epochs):
-        
-        epoch_loss = 0.0
-
-        for batch_X, batch_y in dataloader:
-            optimizer.zero_grad()
-            predictions = model(batch_X)
-            loss = criterion(predictions, batch_y)
-            loss.backward()
-            optimizer.step()
-            epoch_loss += loss.item()
-
-        print(f"Epoch {epoch+1}/{epochs}, Loss: {epoch_loss:.5f}")
-    
-    return model
 
 def main() -> None:
     args = parse_args()
