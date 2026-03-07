@@ -428,13 +428,23 @@ class TrafficLSTM(nn.Module):
         output = self.fc(last_hidden)
         return output
 
+#Create weighted mse loss function to prioritize accuracy nearer to the current time point in the horizon, then train the LSTM model
+def weighted_mse(predictions, targets, weights):
+    error = (predictions - targets) ** 2
+    weighted_error = error * weights
+    return weighted_error.mean()
+
 def train_lstm_model(X, y, epochs=10, batch_size=64):
     dataset = TrafficDataset(X, y)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=True)
 
     model = TrafficLSTM(input_size=X.shape[2])
 
-    criterion = nn.MSELoss()
+    # Create weights for custom loss function to prioritize accuracy nearer to the current time point
+    horizon = y.shape[1]
+    weights = torch.linspace(1.0, 0.3, steps=horizon)
+    weights = weights / weights.mean()
+
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     for epoch in range(epochs):
@@ -444,7 +454,7 @@ def train_lstm_model(X, y, epochs=10, batch_size=64):
         for batch_X, batch_y in dataloader:
             optimizer.zero_grad()
             predictions = model(batch_X)
-            loss = criterion(predictions, batch_y)
+            loss = weighted_mse(predictions, batch_y, weights=weights)
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item()
