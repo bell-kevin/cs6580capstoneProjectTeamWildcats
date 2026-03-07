@@ -547,8 +547,21 @@ class TrafficDataset(Dataset):
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx]
     
+# Define LSTM model for traffic prediction
+class TrafficLSTM(nn.Module):
+    def __init__(self, input_size, hidden_size=64, horizon=72):
+        super().__init__()
+       
+        self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=2, batch_first=True)
+        self.fc = nn.Linear(hidden_size, horizon)
 
-#
+    def forward(self, x):
+        lstm_out, _ = self.lstm(x)
+        last_hidden = lstm_out[:, -1, :]
+        output = self.fc(last_hidden)
+        return output
+
+
 
 def main() -> None:
     args = parse_args()
