@@ -222,4 +222,5 @@ Keys.json
 
 # Ignore serialized model artifacts
 *.pkl
+*.pth
 *.joblib
