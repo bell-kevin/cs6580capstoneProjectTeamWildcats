@@ -369,7 +369,7 @@ def evaluate_split(
 
 # Functions necessary for rnn/lstm model
 # build preprocessor for LSTM model
-def build_lstm_preprocessor(df: pd.DataFrame):
+def build_lstm_preprocessor() -> ColumnTransformer:
     numeric_features = [
         "lane_count",
         "temp_f",
