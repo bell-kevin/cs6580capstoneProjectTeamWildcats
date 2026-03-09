@@ -368,8 +368,8 @@ def evaluate_split(
     }
 
 # Functions necessary for rnn/lstm model
-#preprocesses lstm data
-def preprocess_for_lstm(df: pd.DataFrame):
+# build preprocessor for LSTM model
+def build_lstm_preprocessor(df: pd.DataFrame):
     numeric_features = [
         "lane_count",
         "temp_f",
@@ -415,12 +415,7 @@ def preprocess_for_lstm(df: pd.DataFrame):
         remainder="drop"
     )
 
-    df_copy = df.copy()
-    lag_cols = [col for col in df_copy.columns if col.startswith("traffic_lag_")]
-    df_copy[lag_cols] = df_copy[lag_cols].ffill()
-
-    features_transformed = preprocessor.fit_transform(df_copy)
-    return features_transformed
+    return preprocessor 
 
 # This ensures all rows in a sequence fed into the model are continuous
 # It returns an array of dataframes, where each dataframe is a continuous sequence of rows with no gaps in the date_hour column.
@@ -548,34 +543,54 @@ def train_and_evaluate(
     # LSTM model training and evaluation _____________________________________________________________________________________________________
 
     # preprocess data for LSTM
-    lstm_features = preprocess_for_lstm(engineered)
+    # Split into train and test
+    train_raw_df, test_raw_df = train_test_split(engineered, test_size=test_size, shuffle=False)
+    
+    # Preprocess Features (Scale and impute)
+    preprocessor = build_lstm_preprocessor()
+    # Fit preprocessor on train data and transform train data
+    X_train = preprocessor.fit_transform(train_raw_df)
+    # transform test data with the same preprocessor fitted on train data
+    X_test = preprocessor.transform(test_raw_df)
 
-    # convert to dataframe so we can join the target back
-    lstm_df = pd.DataFrame(lstm_features)
-
+    # Scale Target
     target_scaler = StandardScaler()
-
-    scaled_target = target_scaler.fit_transform(
-        engineered[[TARGET_COLUMN]]
+    # fit target scaler on train target and transform train target
+    y_train = target_scaler.fit_transform(
+        train_raw_df[[TARGET_COLUMN]]
+    ).flatten()
+    # transform test target with the same target scaler fitted on train target
+    y_test = target_scaler.transform(
+        test_raw_df[[TARGET_COLUMN]]
     ).flatten()
 
-    lstm_df[TARGET_COLUMN] = scaled_target
+    # rebuild train and test dataframes with preprocessed features and scaled target for sequence building
+    train_lstm_df = pd.DataFrame(X_train)
+    train_lstm_df[TARGET_COLUMN] = y_train
+    train_lstm_df["date_hour"] = train_raw_df["date_hour"].values
 
-    lstm_df["date_hour"] = engineered["date_hour"].values
+    test_lstm_df = pd.DataFrame(X_test)
+    test_lstm_df[TARGET_COLUMN] = y_test
+    test_lstm_df["date_hour"] = test_raw_df["date_hour"].values
 
-    # build sequences
-    segments = split_into_continuous_segments(lstm_df)
+    # build sequences separately on train and test to avoid data leakage
+    train_segments = split_into_continuous_segments(train_lstm_df)
+    test_segments = split_into_continuous_segments(test_lstm_df)
 
-    feature_columns = lstm_df.columns.drop([TARGET_COLUMN, "date_hour"]).tolist()
+    feature_columns = train_lstm_df.columns.drop([TARGET_COLUMN, "date_hour"]).tolist()
 
-    X_seq, y_seq = build_sequences(
-        segments,
+    X_train_seq, y_train_seq = build_sequences(
+        train_segments,
         feature_columns,
         TARGET_COLUMN
     )
 
-    # split sequences into train and test sets
-    X_train_seq, X_test_seq, y_train_seq, y_test_seq = train_test_split(X_seq, y_seq, test_size=test_size, shuffle=False)
+    X_test_seq, y_test_seq = build_sequences(
+        test_segments,
+        feature_columns,
+        TARGET_COLUMN
+    )
+
     print(f"Built {len(X_train_seq)} training sequences and {len(X_test_seq)} testing sequences of length 48 hours with a 72 hour horizon for RNN/LSTM model.")
     
     # Train and Save LSTM model
