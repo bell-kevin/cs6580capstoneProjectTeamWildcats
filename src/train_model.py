@@ -15,6 +15,10 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
 
 TARGET_COLUMN = "traffic_count_total"
 RANDOM_STATE = 42
@@ -31,6 +35,7 @@ def add_engineered_features(data: pd.DataFrame) -> pd.DataFrame:
         else engineered["date_hour"].dt.normalize()
     )
 
+    engineered["day_of_week_num"] = pd.to_datetime(engineered["date_hour"]).dt.dayofweek
     engineered["month"] = engineered["date_hour"].dt.month
     engineered["is_peak_hour"] = engineered["hour"].isin([7, 8, 9, 15, 16, 17]).astype(int)
     engineered["temp_dewpoint_spread"] = engineered["temp_f"] - engineered["dewpoint_f"]
@@ -95,12 +100,25 @@ def add_engineered_features(data: pd.DataFrame) -> pd.DataFrame:
     )
 
     # Engineer lag features for traffic_count_total
-    lag_hours = [0, 1, 2, 3, 6, 12, 24, 168]
+    lag_hours = [1, 2, 3, 6, 12, 24, 168]
 
     for lag in lag_hours:
         engineered[f"traffic_lag_{lag}"] = (
             engineered[TARGET_COLUMN].shift(lag)
         )
+
+    # adding in features that encode cyclical time patterns
+    engineered["hour_sin"] = np.sin(2 * np.pi * engineered["hour"] / 24)
+    engineered["hour_cos"] = np.cos(2 * np.pi * engineered["hour"] / 24)
+
+    engineered["day_of_week_sin"] = np.sin(2 * np.pi * engineered["day_of_week_num"] / 7)
+    engineered["day_of_week_cos"] = np.cos(2 * np.pi * engineered["day_of_week_num"] / 7)   
+
+    engineered["month_sin"] = np.sin(2 * np.pi * engineered["month"] / 12)
+    engineered["month_cos"] = np.cos(2 * np.pi * engineered["month"] / 12)    
+
+    # Drop day of week numeric
+    engineered = engineered.drop(columns=["day_of_week_num"])  
 
     return engineered
 
@@ -123,7 +141,6 @@ def build_features_and_target(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Seri
         "is_peak_hour",
         "temp_dewpoint_spread",
         "distance_to_holiday_weekend",
-        "traffic_lag_0",
         "traffic_lag_1",
         "traffic_lag_2",
         "traffic_lag_3",
@@ -131,6 +148,12 @@ def build_features_and_target(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Seri
         "traffic_lag_12",
         "traffic_lag_24",
         "traffic_lag_168",
+        "hour_sin",
+        "hour_cos",
+        "day_of_week_sin",
+        "day_of_week_cos",
+        "month_sin",
+        "month_cos",
     }
     missing = required - set(data.columns)
     if missing:
@@ -152,7 +175,6 @@ def build_features_and_target(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Seri
         "is_peak_hour",
         "day_of_week",
         "distance_to_holiday_weekend",
-        "traffic_lag_0",
         "traffic_lag_1",
         "traffic_lag_2",
         "traffic_lag_3",
@@ -160,6 +182,12 @@ def build_features_and_target(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Seri
         "traffic_lag_12",
         "traffic_lag_24",
         "traffic_lag_168",
+        "hour_sin",
+        "hour_cos",
+        "day_of_week_sin",
+        "day_of_week_cos",
+        "month_sin",
+        "month_cos",
     ]
     return data[feature_columns], data[TARGET_COLUMN]
 
@@ -199,6 +227,12 @@ def build_model_pipeline() -> Pipeline:
         "traffic_lag_12",
         "traffic_lag_24",
         "traffic_lag_168",
+        "hour_sin",
+        "hour_cos",
+        "day_of_week_sin",
+        "day_of_week_cos",
+        "month_sin",
+        "month_cos",
     ]
     categorical_features = ["day_of_week"]
 
@@ -235,6 +269,7 @@ def build_model_pipeline() -> Pipeline:
     )
 
     return Pipeline(steps=[("preprocess", preprocess), ("regressor", regressor)])
+
 
 
 def regression_metrics(y_true: pd.Series, y_pred: pd.Series | list[float]) -> dict[str, float]:
@@ -335,6 +370,151 @@ def evaluate_split(
         "champion_predictions": champion_predictions,
     }
 
+# Functions necessary for rnn/lstm model
+# build preprocessor for LSTM model
+def build_lstm_preprocessor() -> ColumnTransformer:
+    numeric_features = [
+        "lane_count",
+        "temp_f",
+        "dewpoint_f",
+        "humidity_pct",
+        "wind_speed_mph",
+        "snow_depth_in",
+        "precip_1hr_in",
+        "hour",
+        "month",
+        "temp_dewpoint_spread",
+        "is_weekend",
+        "is_federal_holiday",
+        "is_peak_hour",
+        "distance_to_holiday_weekend",
+        "traffic_lag_1",
+        "traffic_lag_2",
+        "traffic_lag_3",
+        "traffic_lag_6",
+        "traffic_lag_12",
+        "traffic_lag_24",
+        "traffic_lag_168",
+        "hour_sin",
+        "hour_cos",
+        "day_of_week_sin",
+        "day_of_week_cos",
+        "month_sin",
+        "month_cos",
+    ]   
+    categorical_features = ["day_of_week"]
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("numeric", Pipeline([
+                ("imputer", SimpleImputer(strategy="median")),
+                ("scaler", StandardScaler()),
+            ]), numeric_features),
+            ("categorical", Pipeline([
+                ("imputer", SimpleImputer(strategy="most_frequent")),
+                ("onehot", OneHotEncoder(handle_unknown="ignore")),
+            ]), categorical_features),
+        ],
+        remainder="drop"
+    )
+
+    return preprocessor 
+
+# This ensures all rows in a sequence fed into the model are continuous
+# It returns an array of dataframes, where each dataframe is a continuous sequence of rows with no gaps in the date_hour column.
+def split_into_continuous_segments(df: pd.DataFrame) -> list[pd.DataFrame]:
+    df = df.sort_values("date_hour").copy()
+
+    df["date_hour"] = pd.to_datetime(df["date_hour"])
+    df["time_diff"] = df["date_hour"].diff().dt.total_seconds() / 3600
+    
+    # Start a new sequence whenever the time difference between consecutive rows is over 1 hour
+    df["segment_id"] = (df["time_diff"] > 1).cumsum()
+
+    segments = []
+
+    for _, seg in df.groupby("segment_id"):
+        seg = seg.drop(columns=["time_diff", "segment_id"])
+        if len(seg) >= 121:
+            segments.append(seg)    
+
+    return segments
+
+# Create sliding window sequences within each segment, separating features and target and returning feature and target arrays suitable for RNN/LSTM 
+def build_sequences(segments: list[pd.DataFrame], feature_cols: list[str], target_col: str, seq_length:int = 48, horizon:int = 72):
+    X, y = [], []
+
+    for seg in segments:
+        features = seg[feature_cols].values
+        target = seg[target_col].values
+
+        for i in range(seq_length, len(seg) - horizon + 1):
+            # the features window for one sample/window is the previous seq_length rows(48), and the target is the next horizon(72) rows after that
+            X.append(features[i-seq_length:i])
+            y.append(target[i:i+horizon])
+    
+    return np.array(X), np.array(y)
+
+# Create pytorch traffic dataset for RNN/LSTM
+class TrafficDataset(Dataset):
+    def __init__(self, X: np.ndarray, y: np.ndarray):
+        self.X = torch.tensor(X, dtype=torch.float32)
+        self.y = torch.tensor(y, dtype=torch.float32)
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        return self.X[idx], self.y[idx]
+    
+# Define LSTM model for traffic prediction
+class TrafficLSTM(nn.Module):
+    def __init__(self, input_size, hidden_size=128, horizon=72):
+        super().__init__()
+       
+        self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=2, dropout=0.2, batch_first=True)
+        self.fc = nn.Linear(hidden_size, horizon)
+
+    def forward(self, x):
+        lstm_out, _ = self.lstm(x)
+        last_hidden = lstm_out[:, -1, :]
+        output = self.fc(last_hidden)
+        return output
+
+#Create weighted mse loss function to prioritize accuracy nearer to the current time point in the horizon, then train the LSTM model
+def weighted_mse(predictions, targets, weights):
+    error = (predictions - targets) ** 2
+    weighted_error = error * weights
+    return weighted_error.mean()
+
+def train_lstm_model(X, y, epochs=25, batch_size=128):
+    dataset = TrafficDataset(X, y)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=True)
+
+    model = TrafficLSTM(input_size=X.shape[2])
+
+    # Create weights for custom loss function to prioritize accuracy nearer to the current time point
+    horizon = y.shape[1]
+    weights = torch.linspace(1.0, 0.3, steps=horizon)
+    weights = weights / weights.sum()
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+    for epoch in range(epochs):
+        
+        epoch_loss = 0.0
+
+        for batch_X, batch_y in dataloader:
+            optimizer.zero_grad()
+            predictions = model(batch_X)
+            loss = weighted_mse(predictions, batch_y, weights=weights)
+            loss.backward()
+            optimizer.step()
+            epoch_loss += loss.item()
+
+        print(f"Epoch {epoch+1}/{epochs}, Loss: {epoch_loss:.5f}")
+    
+    return model
 
 def train_and_evaluate(
     input_file: Path,
@@ -362,6 +542,96 @@ def train_and_evaluate(
         )
 
     features, target = build_features_and_target(engineered)
+
+    # LSTM model training and evaluation _____________________________________________________________________________________________________
+
+    # preprocess data for LSTM
+    # Split into train and test
+    train_raw_df, test_raw_df = train_test_split(engineered, test_size=test_size, shuffle=False)
+    
+    # Preprocess Features (Scale and impute)
+    preprocessor = build_lstm_preprocessor()
+    # Fit preprocessor on train data and transform train data
+    X_train = preprocessor.fit_transform(train_raw_df)
+    # transform test data with the same preprocessor fitted on train data
+    X_test = preprocessor.transform(test_raw_df)
+
+    # Scale Target
+    target_scaler = StandardScaler()
+    # fit target scaler on train target and transform train target
+    y_train = target_scaler.fit_transform(
+        train_raw_df[[TARGET_COLUMN]]
+    ).flatten()
+    # transform test target with the same target scaler fitted on train target
+    y_test = target_scaler.transform(
+        test_raw_df[[TARGET_COLUMN]]
+    ).flatten()
+
+    # rebuild train and test dataframes with preprocessed features and scaled target for sequence building
+    train_lstm_df = pd.DataFrame(X_train)
+    train_lstm_df[TARGET_COLUMN] = y_train
+    train_lstm_df["date_hour"] = train_raw_df["date_hour"].values
+
+    test_lstm_df = pd.DataFrame(X_test)
+    test_lstm_df[TARGET_COLUMN] = y_test
+    test_lstm_df["date_hour"] = test_raw_df["date_hour"].values
+
+    # build sequences separately on train and test to avoid data leakage
+    train_segments = split_into_continuous_segments(train_lstm_df)
+    test_segments = split_into_continuous_segments(test_lstm_df)
+
+    feature_columns = train_lstm_df.columns.drop([TARGET_COLUMN, "date_hour"]).tolist()
+
+    X_train_seq, y_train_seq = build_sequences(
+        train_segments,
+        feature_columns,
+        TARGET_COLUMN
+    )
+
+    X_test_seq, y_test_seq = build_sequences(
+        test_segments,
+        feature_columns,
+        TARGET_COLUMN
+    )
+
+    print(f"Built {len(X_train_seq)} training sequences and {len(X_test_seq)} testing sequences of length 48 hours with a 72 hour horizon for RNN/LSTM model.")
+    
+    # Train and Save LSTM model
+    lstm_model = train_lstm_model(X_train_seq, y_train_seq)
+    torch.save(lstm_model.state_dict(), model_dir / "champion_lstm.pth")
+
+    # Evaluate LSTM model
+    lstm_model.eval()
+
+    test_dataset = TrafficDataset(X_test_seq, y_test_seq)
+    test_loader = DataLoader(test_dataset, batch_size=256, shuffle=False)
+
+    predictions = []
+
+    with torch.no_grad():
+        for batch_X, _ in test_loader:
+            preds = lstm_model(batch_X)
+            predictions.append(preds.cpu().numpy())
+
+    lstm_predictions = np.vstack(predictions)
+
+    # Assess LSTM
+    y_true_lstm = target_scaler.inverse_transform(
+    y_test_seq.reshape(-1,1)
+    ).flatten()
+
+    y_pred_lstm = target_scaler.inverse_transform(
+        lstm_predictions.reshape(-1,1)
+    ).flatten() 
+
+    lstm_rmse = np.sqrt(mean_squared_error(y_true_lstm, y_pred_lstm))
+    lstm_mae = mean_absolute_error(y_true_lstm, y_pred_lstm)
+    lstm_r2 = r2_score(y_true_lstm, y_pred_lstm)
+
+    print("LSTM RMSE:", lstm_rmse)
+    print("LSTM MAE:", lstm_mae)
+    print("LSTM R2:", lstm_r2)
+
     split_results = evaluate_split(
         features=features,
         target=target,
@@ -410,6 +680,13 @@ def train_and_evaluate(
                 "mae": split_results["champion_mae"],
                 "r2": split_results["champion_r2"],
             },
+            {
+                "split_strategy": "sequence",
+                "model": "lstm_model",
+                "rmse": lstm_rmse,
+                "mae": lstm_mae,
+                "r2": lstm_r2,
+            }
         ]
     )
     metrics_file = results_dir / "model_metrics.csv"
@@ -492,7 +769,6 @@ def parse_args() -> argparse.Namespace:
         help="Skip time-split comparison when using the random split strategy.",
     )
     return parser.parse_args()
-
 
 def main() -> None:
     args = parse_args()
