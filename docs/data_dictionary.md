@@ -39,12 +39,12 @@ This dictionary documents the **joined hourly modeling dataset** produced by `sr
 | `traffic_lag_12` | int | Engineered column which is the total traffic count 12 hours before the current time. |
 | `traffic_lag_24` | int | Engineered column which is the total traffic count 24 hours before the current time. |
 | `traffic_lag_168` | int | Engineered column which is the total traffic count 168 hours before the current time. |
-| `month_sin` | float | Engineered column which is the sine of the month value, representing cyclicality of months
-| `month_cos` | float | Engineered column which is the cosine of the month value, representing cyclicality of months
-| `hour_sin` | float | Engineered column which is the sine of the hour value, representing cyclicality of months
-| `hour_cos` | float | Engineered column which is the cosine of the hour value, representing cyclicality of months
-| `day_of_week_sin` | float | Engineered column which is the sine of the day_of_week value, representing cyclicality of months
-| `day_of_week_cos` | float | Engineered column which is the cosine of the day_of_week value, representing cyclicality of months
+| `month_sin` | float | Engineered column which is the sine of the month value, representing cyclicality of months in a year
+| `month_cos` | float | Engineered column which is the cosine of the month value, representing cyclicality of months in a year
+| `hour_sin` | float | Engineered column which is the sine of the hour value, representing cyclicality of hours in a day
+| `hour_cos` | float | Engineered column which is the cosine of the hour value, representing cyclicality of hours in a day
+| `day_of_week_sin` | float | Engineered column which is the sine of the day_of_week value, representing cyclicality of days of the week
+| `day_of_week_cos` | float | Engineered column which is the cosine of the day_of_week value, representing cyclicality of days of the week
 
 
 

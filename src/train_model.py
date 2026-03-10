@@ -115,7 +115,10 @@ def add_engineered_features(data: pd.DataFrame) -> pd.DataFrame:
     engineered["day_of_week_cos"] = np.cos(2 * np.pi * engineered["day_of_week_num"] / 7)   
 
     engineered["month_sin"] = np.sin(2 * np.pi * engineered["month"] / 12)
-    engineered["month_cos"] = np.cos(2 * np.pi * engineered["month"] / 12)      
+    engineered["month_cos"] = np.cos(2 * np.pi * engineered["month"] / 12)    
+
+    # Drop day of week numeric
+    engineered = engineered.drop(columns=["day_of_week_num"])  
 
     return engineered
 
@@ -445,7 +448,7 @@ def build_sequences(segments: list[pd.DataFrame], feature_cols: list[str], targe
         features = seg[feature_cols].values
         target = seg[target_col].values
 
-        for i in range(seq_length, len(seg) - horizon):
+        for i in range(seq_length, len(seg) - horizon + 1):
             # the features window for one sample/window is the previous seq_length rows(48), and the target is the next horizon(72) rows after that
             X.append(features[i-seq_length:i])
             y.append(target[i:i+horizon])
@@ -678,12 +681,12 @@ def train_and_evaluate(
                 "r2": split_results["champion_r2"],
             },
             {
-            "split_strategy": "sequence",
-            "model": "lstm_model",
-            "rmse": lstm_rmse,
-            "mae": lstm_mae,
-            "r2": lstm_r2,
-        }
+                "split_strategy": "sequence",
+                "model": "lstm_model",
+                "rmse": lstm_rmse,
+                "mae": lstm_mae,
+                "r2": lstm_r2,
+            }
         ]
     )
     metrics_file = results_dir / "model_metrics.csv"
