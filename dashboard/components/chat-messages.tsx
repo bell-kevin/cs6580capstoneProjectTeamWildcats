@@ -204,7 +204,7 @@ function MessageBubble({
               <div className="h-2 w-2 animate-bounce rounded-full bg-current opacity-60" />
             </div>
           ) : (
-            <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap break-words">
+            <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap wrap-break-word">
               {displayContent}
             </div>
           )}

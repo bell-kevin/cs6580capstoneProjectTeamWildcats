@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { ChatMessages, type Message } from "@/components/chat-messages";
-import { ChatInput } from "@/components/chat-input";
+import { ChatInput, type ModelType } from "@/components/chat-input";
 import { Loader2, Snowflake, Train, LogIn } from "lucide-react";
 import { SnowAnimation } from "@/components/snow-animation";
 import { SnowToggle } from "@/components/snow-toggle";
@@ -15,6 +15,7 @@ export default function GuestPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
+  const [selectedModel, setSelectedModel] = useState<ModelType>("random-forest");
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleSendMessage = async (content: string) => {
@@ -37,7 +38,7 @@ export default function GuestPage() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, guest: true }),
+        body: JSON.stringify({ content, guest: true, model: selectedModel }),
         signal: abortControllerRef.current.signal,
       });
 
@@ -223,6 +224,8 @@ export default function GuestPage() {
             onSend={handleSendMessage}
             onStop={handleStop}
             isLoading={isLoading}
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
           />
         </div>
       </div>

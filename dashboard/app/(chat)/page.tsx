@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { ChatSidebar } from "@/components/chat-sidebar";
 import { ChatMessages, type Message } from "@/components/chat-messages";
-import { ChatInput } from "@/components/chat-input";
+import { ChatInput, type ModelType } from "@/components/chat-input";
+import { ChatWelcome } from "@/components/ChatWelcome";
 import type { Chat } from "@/lib/db/schema";
-import { Loader2, Menu, Snowflake, Train, MapPin } from "lucide-react";
+import { Loader2, Menu, Snowflake } from "lucide-react";
 import {
   SidebarInset,
   SidebarProvider,
@@ -26,16 +27,15 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
+  const [selectedModel, setSelectedModel] = useState<ModelType>("random-forest");
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/login");
     }
   }, [user, authLoading, router]);
 
-  // Fetch chats
   const fetchChats = useCallback(async () => {
     try {
       const response = await fetch("/api/chats");
@@ -54,7 +54,6 @@ export default function ChatPage() {
     }
   }, [user, fetchChats]);
 
-  // Fetch messages when chat changes
   useEffect(() => {
     if (currentChatId) {
       fetchMessages(currentChatId);
@@ -85,7 +84,6 @@ export default function ChatPage() {
   const handleSendMessage = async (content: string) => {
     if (isLoading) return;
 
-    // Add user message optimistically
     const userMessage: Message = {
       id: `temp-${Date.now()}`,
       role: "user",
@@ -95,20 +93,17 @@ export default function ChatPage() {
     setIsLoading(true);
     setStreamingContent("");
 
-    // Create abort controller for stopping
     abortControllerRef.current = new AbortController();
 
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chatId: currentChatId, content }),
+        body: JSON.stringify({ chatId: currentChatId, content, model: selectedModel }),
         signal: abortControllerRef.current.signal,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to send message");
-      }
+      if (!response.ok) throw new Error("Failed to send message");
 
       const reader = response.body?.getReader();
       if (!reader) throw new Error("No reader");
@@ -132,17 +127,14 @@ export default function ChatPage() {
 
             try {
               const parsed = JSON.parse(data);
-
               if (parsed.chatId) {
                 newChatId = parsed.chatId;
                 setCurrentChatId(newChatId);
               }
-
               if (parsed.content) {
                 fullContent += parsed.content;
                 setStreamingContent(fullContent);
               }
-
               if (parsed.title) {
                 newTitle = parsed.title;
               }
@@ -153,19 +145,13 @@ export default function ChatPage() {
         }
       }
 
-      // Add assistant message
       if (fullContent) {
         setMessages((prev) => [
           ...prev,
-          {
-            id: `assistant-${Date.now()}`,
-            role: "assistant",
-            content: fullContent,
-          },
+          { id: `assistant-${Date.now()}`, role: "assistant", content: fullContent },
         ]);
       }
 
-      // Refresh chat list
       if (newChatId || newTitle) {
         fetchChats();
       }
@@ -174,7 +160,6 @@ export default function ChatPage() {
         console.log("Request aborted");
       } else {
         console.error("Send message error:", error);
-        // Remove optimistic message on error
         setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
       }
     } finally {
@@ -184,19 +169,14 @@ export default function ChatPage() {
     }
   };
 
-  const handleStop = () => {
-    abortControllerRef.current?.abort();
-  };
+  const handleStop = () => abortControllerRef.current?.abort();
 
   const handleSelectChat = (chatId: string | null) => {
     setCurrentChatId(chatId);
-    if (!chatId) {
-      setMessages([]);
-    }
+    if (!chatId) setMessages([]);
   };
 
   const handleEditMessage = (messageId: string, newContent: string) => {
-    // Remove all messages after the edited one and resend
     const messageIndex = messages.findIndex((m) => m.id === messageId);
     if (messageIndex !== -1) {
       setMessages(messages.slice(0, messageIndex));
@@ -204,9 +184,7 @@ export default function ChatPage() {
     }
   };
 
-  const handleResendMessage = (content: string) => {
-    handleSendMessage(content);
-  };
+  const handleResendMessage = (content: string) => handleSendMessage(content);
 
   if (authLoading) {
     return (
@@ -216,9 +194,7 @@ export default function ChatPage() {
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
     <SidebarProvider>
@@ -230,7 +206,6 @@ export default function ChatPage() {
         onChatsChange={fetchChats}
       />
       <SidebarInset className="relative z-10 flex h-dvh flex-col">
-        {/* Snow toggle button - desktop */}
         <div className="absolute top-4 right-4 z-20 hidden md:block">
           <SnowToggle enabled={snowEnabled} onToggle={toggleSnow} />
         </div>
@@ -246,57 +221,13 @@ export default function ChatPage() {
           </div>
         </header>
 
-        {/* Main chat area - flex-1 to fill remaining space */}
         <div className="flex flex-1 flex-col min-h-0">
-          {/* Scrollable messages area */}
           <div className="flex-1 overflow-y-auto min-h-0">
-            {/* Info Banner - Show when no messages */}
+
+            {/* Welcome screen — shown when no messages */}
             {messages.length === 0 && !isLoading && (
-              <div className="mx-auto w-full max-w-3xl px-4 pt-6">
-                <div className="rounded-xl border bg-linear-to-r from-blue-50 to-cyan-50 p-6 dark:from-blue-950/30 dark:to-cyan-950/30 dark:border-blue-900/50">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-blue-400 to-cyan-500">
-                      <Snowflake className="h-5 w-5 text-white" />
-                    </div>
-                    <h2 className="text-lg font-semibold text-foreground">Welcome to Snowbasin</h2>
-                  </div>
-
-                  <p className="text-sm text-muted-foreground mb-4">
-                    I'm specialized in helping you with Utah-specific information. Here's what I can help you with:
-                  </p>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="flex items-start gap-3 rounded-lg bg-white/60 p-3 dark:bg-white/5">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500 text-white">
-                        <Snowflake className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-sm">Snow & Weather</h3>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Snow forecasts, ski conditions, road conditions, winter weather alerts for Utah
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3 rounded-lg bg-white/60 p-3 dark:bg-white/5">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500 text-white">
-                        <Train className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-sm">UTA Transit</h3>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Bus schedules, TRAX times, FrontRunner, routes, stops, and service alerts
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t border-blue-200/50 dark:border-blue-800/50">
-                    <p className="text-xs text-muted-foreground">
-                      <span className="font-medium">Try asking:</span> "What's the snow forecast for Park City?" or "When is the next TRAX at Temple Square?"
-                    </p>
-                  </div>
-                </div>
+              <div className="mx-auto w-full max-w-3xl px-4 py-6">
+                <ChatWelcome selectedModel={selectedModel} onModelChange={setSelectedModel} />
               </div>
             )}
 
@@ -312,12 +243,13 @@ export default function ChatPage() {
             )}
           </div>
 
-          {/* Fixed input at bottom */}
           <div className="shrink-0">
             <ChatInput
               onSend={handleSendMessage}
               onStop={handleStop}
               isLoading={isLoading}
+              selectedModel={selectedModel}
+              onModelChange={setSelectedModel}
             />
           </div>
         </div>

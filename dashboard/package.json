@@ -54,6 +54,10 @@
     "typescript": "^5"
   },
   "overrides": {
-    "esbuild": ">=0.25.0"
+    "esbuild": ">=0.25.0",
+    "ajv": "8.17.1"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   }
 }

@@ -6,35 +6,171 @@ import {
   formatAlertsResponse,
   POPULAR_STOPS,
 } from "@/lib/uta";
-// UDOT integration - commented out for now
-// import {
-//   getSkiCanyonConditions,
-//   getRoadConditions,
-//   getWeatherStations,
-//   formatRoadConditionsResponse,
-//   formatMountainPassesResponse,
-//   formatAlertsResponse as formatUDOTAlertsResponse,
-//   formatSnowPlowsResponse,
-//   formatWeatherStationsResponse,
-// } from "@/lib/udot";
+import {
+  getSkiCanyonConditions,
+  getRoadConditions,
+  getWeatherStations,
+  formatRoadConditionsResponse,
+  formatMountainPassesResponse,
+  formatAlertsResponse as formatUDOTAlertsResponse,
+  formatSnowPlowsResponse,
+  formatWeatherStationsResponse,
+} from "@/lib/udot";
+
+// ─── Prediction helpers ───────────────────────────────────────────────────────
+
+const HF_FASTAPI_URL =
+  process.env.HF_FASTAPI_URL ||
+  "https://hazemdhw26-snowbasin-traffic-api.hf.space";
+
+const PREDICTION_KEYWORDS = [
+  "predict", "forecast", "how busy", "traffic prediction",
+  "how many cars", "how many vehicles", "vehicles per hour",
+  "traffic estimate", "traffic forecast",
+];
+
+const DAY_MAP: Record<string, number> = {
+  monday: 0, tuesday: 1, wednesday: 2, thursday: 3,
+  friday: 4, saturday: 5, sunday: 6,
+};
+
+function extractPredictionParams(
+  content: string,
+  previousMessages: Array<{ role: string; content: string }>
+) {
+  const allText = [...previousMessages.map((m) => m.content), content]
+    .join(" ")
+    .toLowerCase();
+
+  // Day of week
+  let day_of_week = "Saturday";
+  for (const day of Object.keys(DAY_MAP)) {
+    if (allText.includes(day)) {
+      day_of_week = day.charAt(0).toUpperCase() + day.slice(1);
+      break;
+    }
+  }
+
+  // Hour — "8am", "3pm", "8:00"
+  let hour = 9;
+  const hourMatch = allText.match(/\b(\d{1,2})(?::00)?\s*(am|pm)\b/);
+  if (hourMatch) {
+    hour = parseInt(hourMatch[1]);
+    if (hourMatch[2] === "pm" && hour !== 12) hour += 12;
+    if (hourMatch[2] === "am" && hour === 12) hour = 0;
+  }
+
+  // Month
+  const monthNames = [
+    "january", "february", "march", "april", "may", "june",
+    "july", "august", "september", "october", "november", "december",
+  ];
+  let month = new Date().getMonth() + 1;
+  for (let i = 0; i < monthNames.length; i++) {
+    if (allText.includes(monthNames[i])) { month = i + 1; break; }
+  }
+
+  // Snow depth — "18 inches of snow"
+  let snow_depth_in = 18;
+  const snowMatch = allText.match(/(\d+)\s*(?:inches?|in\.?)\s*(?:of\s*)?snow/);
+  if (snowMatch) snow_depth_in = parseInt(snowMatch[1]);
+
+  // Temperature
+  let temp_f = 28;
+  const tempMatch = allText.match(/(\d+)\s*(?:°f|degrees?\s*f)/);
+  if (tempMatch) temp_f = parseInt(tempMatch[1]);
+
+  // Humidity
+  let humidity_pct = 65;
+  const humMatch = allText.match(/(\d+)\s*%\s*humidity/);
+  if (humMatch) humidity_pct = parseInt(humMatch[1]);
+
+  // Wind
+  let wind_speed_mph = 10;
+  const windMatch = allText.match(/(\d+)\s*mph/);
+  if (windMatch) wind_speed_mph = parseInt(windMatch[1]);
+
+  const dayIndex = DAY_MAP[day_of_week.toLowerCase()] ?? 5;
+  const is_weekend = dayIndex >= 5;
+  const is_federal_holiday = allText.includes("holiday") || allText.includes("federal");
+
+  return {
+    hour, day_of_week, month, is_weekend, is_federal_holiday,
+    temp_f, humidity_pct, wind_speed_mph, snow_depth_in, precip_1hr_in: 0.1,
+  };
+}
+
+function hasPredictionIntent(content: string): boolean {
+  const lower = content.toLowerCase();
+  return PREDICTION_KEYWORDS.some((k) => lower.includes(k));
+}
+
+function hasEnoughInfoToPredict(
+  content: string,
+  previousMessages: Array<{ role: string; content: string }>
+): boolean {
+  const allText = [...previousMessages.map((m) => m.content), content]
+    .join(" ")
+    .toLowerCase();
+
+  const hasDay = Object.keys(DAY_MAP).some((d) => allText.includes(d));
+  const hasTime = /\b\d{1,2}\s*(am|pm)\b/.test(allText);
+  const wantsDefaults = /typical|default|usual|average|use (?:rf|random forest|lstm|the model)|just predict|go ahead|yes.*(?:use|go)|sure|ok/.test(allText);
+
+  return hasDay || hasTime || wantsDefaults;
+}
+
+async function fetchPredictionIfNeeded(
+  content: string,
+  model: string,
+  previousMessages: Array<{ role: string; content: string }>
+): Promise<string> {
+  if (!hasPredictionIntent(content)) return "";
+  if (!hasEnoughInfoToPredict(content, previousMessages)) return "";
+
+  const params = extractPredictionParams(content, previousMessages);
+  const modelLabel = model === "lstm" ? "LSTM" : "Random Forest";
+
+  try {
+    const res = await fetch(`${HF_FASTAPI_URL}/predict`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!res.ok) return "";
+    const data = await res.json();
+
+    return `**🤖 ML PREDICTION RESULT (${modelLabel} Model)**
+- Predicted traffic: ${data.prediction} vehicles/hour
+- Conditions: ${params.day_of_week} at ${params.hour}:00 · ${params.temp_f}°F · ${params.snow_depth_in}" snow · ${params.humidity_pct}% humidity · ${params.wind_speed_mph} mph wind
+- Weekend: ${params.is_weekend ? "Yes" : "No"} · Holiday: ${params.is_federal_holiday ? "Yes" : "No"} · Month: ${params.month}
+- Confidence: ${data.confidence}
+
+Interpret this for the user: light traffic = <400 vehicles/hr, moderate = 400-600, busy = 600-800, very busy = >800. Explain what the number means in practical terms for driving to Snowbasin.`;
+  } catch {
+    return "";
+  }
+}
+
+// ─── Route handlers ───────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    const { chatId, content, guest } = await request.json();
+    const { chatId, content, guest, model = "random-forest" } = await request.json();
 
     if (!content) {
       return new Response("Message content is required", { status: 400 });
     }
 
-    // Guest mode - just stream response without saving
     if (guest) {
-      return handleGuestChat(content);
+      return handleGuestChat(content, model);
     }
 
-    // Authenticated mode - require user
     if (!user) {
       return new Response("Unauthorized", { status: 401 });
     }
@@ -42,10 +178,8 @@ export async function POST(request: Request) {
     let currentChatId = chatId;
     let isNewChat = false;
 
-    // Create new chat if no chatId provided
     if (!currentChatId) {
       isNewChat = true;
-
       const { data: newChat, error: chatError } = await supabase
         .from("chats")
         .insert({ title: "New Chat", user_id: user.id })
@@ -56,18 +190,12 @@ export async function POST(request: Request) {
       currentChatId = newChat.id;
     }
 
-    // Save user message
     const { error: userMsgError } = await supabase
       .from("messages")
-      .insert({
-        chat_id: currentChatId,
-        role: "user",
-        content,
-      });
+      .insert({ chat_id: currentChatId, role: "user", content });
 
     if (userMsgError) throw userMsgError;
 
-    // Get all messages for context
     const { data: previousMessages } = await supabase
       .from("messages")
       .select("*")
@@ -79,27 +207,29 @@ export async function POST(request: Request) {
       content: m.content,
     }));
 
-    // Check if the message is about transit and fetch real-time data
-    const transitData = await fetchTransitDataIfNeeded(content);
-    // UDOT road data - commented out for now
-    // const roadData = await fetchRoadDataIfNeeded(content);
-    const realTimeData = transitData || "";
+    // Fetch all context in parallel
+    const [transitData, roadData, predictionData] = await Promise.all([
+      fetchTransitDataIfNeeded(content),
+      fetchRoadDataIfNeeded(content),
+      fetchPredictionIfNeeded(content, model, messagesForAI.slice(0, -1)),
+    ]);
 
-    // Create streaming response
+    const realTimeData = [predictionData, roadData, transitData]
+      .filter(Boolean)
+      .join("\n\n---\n\n");
+
     const encoder = new TextEncoder();
     let fullResponse = "";
 
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // Send chatId first if it's a new chat
           if (isNewChat) {
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({ chatId: currentChatId })}\n\n`)
             );
           }
 
-          // Stream the AI response with real-time data if available
           for await (const chunk of streamChatResponse(messagesForAI, realTimeData)) {
             fullResponse += chunk;
             controller.enqueue(
@@ -107,16 +237,12 @@ export async function POST(request: Request) {
             );
           }
 
-          // Save assistant message
-          await supabase
-            .from("messages")
-            .insert({
-              chat_id: currentChatId,
-              role: "assistant",
-              content: fullResponse,
-            });
+          await supabase.from("messages").insert({
+            chat_id: currentChatId,
+            role: "assistant",
+            content: fullResponse,
+          });
 
-          // Generate title for new chats
           if (isNewChat) {
             const title = await generateChatTitle(content);
             await supabase
@@ -128,7 +254,6 @@ export async function POST(request: Request) {
               encoder.encode(`data: ${JSON.stringify({ title })}\n\n`)
             );
           } else {
-            // Update chat timestamp
             await supabase
               .from("chats")
               .update({ updated_at: new Date().toISOString() })
@@ -160,24 +285,30 @@ export async function POST(request: Request) {
   }
 }
 
-async function handleGuestChat(content: string) {
-  const transitData = await fetchTransitDataIfNeeded(content);
-  // UDOT road data - commented out for now
-  // const roadData = await fetchRoadDataIfNeeded(content);
-  const realTimeData = transitData || "";
+async function handleGuestChat(content: string, model: string) {
+  const [transitData, roadData, predictionData] = await Promise.all([
+    fetchTransitDataIfNeeded(content),
+    fetchRoadDataIfNeeded(content),
+    fetchPredictionIfNeeded(content, model, []),
+  ]);
+
+  const realTimeData = [predictionData, roadData, transitData]
+    .filter(Boolean)
+    .join("\n\n---\n\n");
+
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const messagesForAI = [{ role: "user" as const, content }];
-
-        for await (const chunk of streamChatResponse(messagesForAI, realTimeData)) {
+        for await (const chunk of streamChatResponse(
+          [{ role: "user" as const, content }],
+          realTimeData
+        )) {
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ content: chunk })}\n\n`)
           );
         }
-
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
       } catch (error) {
@@ -199,27 +330,21 @@ async function handleGuestChat(content: string) {
   });
 }
 
+// ─── Data fetchers ────────────────────────────────────────────────────────────
+
 async function fetchTransitDataIfNeeded(content: string): Promise<string> {
   const transitKeywords = [
     "bus", "trax", "train", "transit", "uta", "frontrunner",
-    "stop", "station", "route", "schedule", "arrival", "delay", "alert"
+    "stop", "station", "route", "schedule", "arrival", "delay", "alert",
   ];
 
-  const isTransitQuery = transitKeywords.some((keyword) =>
-    content.toLowerCase().includes(keyword)
-  );
-
-  if (!isTransitQuery) return "";
+  if (!transitKeywords.some((k) => content.toLowerCase().includes(k))) return "";
 
   let transitData = "";
   try {
-    // Fetch service alerts
     const alerts = await getServiceAlerts();
-    if (alerts.length > 0) {
-      transitData += formatAlertsResponse(alerts) + "\n\n";
-    }
+    if (alerts.length > 0) transitData += formatAlertsResponse(alerts) + "\n\n";
 
-    // Fetch arrivals for popular stops
     transitData += "**Popular UTA Stops:**\n";
     for (const stop of POPULAR_STOPS.slice(0, 5)) {
       const arrivals = await getStopArrivals(stop.stopId);
@@ -237,64 +362,52 @@ async function fetchTransitDataIfNeeded(content: string): Promise<string> {
   return transitData;
 }
 
-// UDOT road data function - commented out for now
-// async function fetchRoadDataIfNeeded(content: string): Promise<string> {
-//   const roadKeywords = [
-//     "road", "highway", "canyon", "pass", "drive", "driving", "conditions",
-//     "snow plow", "snowplow", "plow", "closure", "closed", "open",
-//     "cottonwood", "parley", "provo canyon", "ogden canyon",
-//     "ski", "skiing", "resort", "alta", "snowbird", "brighton", "solitude",
-//     "park city", "deer valley", "sundance", "powder mountain", "snowbasin",
-//     "i-80", "i-15", "sr-210", "sr-190", "sr-39", "us-189",
-//     "traction", "chain", "restriction", "weather station", "surface temp"
-//   ];
-//
-//   const isRoadQuery = roadKeywords.some((keyword) =>
-//     content.toLowerCase().includes(keyword)
-//   );
-//
-//   if (!isRoadQuery) return "";
-//
-//   let roadData = "";
-//   try {
-//     const skiCanyonKeywords = [
-//       "cottonwood", "canyon", "ski", "alta", "snowbird", "brighton", "solitude",
-//       "park city", "parley", "ogden", "snowbasin", "powder mountain", "provo", "sundance"
-//     ];
-//     const isSkiCanyonQuery = skiCanyonKeywords.some((keyword) =>
-//       content.toLowerCase().includes(keyword)
-//     );
-//
-//     if (isSkiCanyonQuery) {
-//       const canyonData = await getSkiCanyonConditions();
-//       roadData += "\n**UDOT REAL-TIME SKI CANYON DATA:**\n\n";
-//       if (canyonData.passes.length > 0) {
-//         roadData += formatMountainPassesResponse(canyonData.passes) + "\n";
-//       }
-//       if (canyonData.conditions.length > 0) {
-//         roadData += formatRoadConditionsResponse(canyonData.conditions) + "\n";
-//       }
-//       if (canyonData.alerts.length > 0) {
-//         roadData += formatUDOTAlertsResponse(canyonData.alerts) + "\n";
-//       }
-//       if (canyonData.plows.length > 0) {
-//         roadData += formatSnowPlowsResponse(canyonData.plows) + "\n";
-//       }
-//     } else {
-//       const [conditions, weatherStations] = await Promise.all([
-//         getRoadConditions(),
-//         getWeatherStations(),
-//       ]);
-//       roadData += "\n**UDOT REAL-TIME ROAD DATA:**\n\n";
-//       if (conditions.length > 0) {
-//         roadData += formatRoadConditionsResponse(conditions.slice(0, 10)) + "\n";
-//       }
-//       if (weatherStations.length > 0) {
-//         roadData += formatWeatherStationsResponse(weatherStations.slice(0, 5)) + "\n";
-//       }
-//     }
-//   } catch (error) {
-//     console.error("Error fetching road data:", error);
-//   }
-//   return roadData;
-// }
+async function fetchRoadDataIfNeeded(content: string): Promise<string> {
+  const roadKeywords = [
+    "road", "highway", "canyon", "pass", "drive", "driving", "conditions",
+    "snow plow", "snowplow", "plow", "closure", "closed", "open",
+    "cottonwood", "parley", "provo canyon", "ogden canyon",
+    "ski", "skiing", "resort", "alta", "snowbird", "brighton", "solitude",
+    "park city", "deer valley", "sundance", "powder mountain", "snowbasin",
+    "i-80", "i-15", "sr-210", "sr-190", "sr-39", "us-189",
+    "traction", "chain", "restriction", "weather station", "surface temp",
+  ];
+
+  if (!roadKeywords.some((k) => content.toLowerCase().includes(k))) return "";
+
+  let roadData = "";
+  try {
+    const skiCanyonKeywords = [
+      "cottonwood", "canyon", "ski", "alta", "snowbird", "brighton", "solitude",
+      "park city", "parley", "ogden", "snowbasin", "powder mountain", "provo", "sundance",
+    ];
+    const isSkiQuery = skiCanyonKeywords.some((k) => content.toLowerCase().includes(k));
+
+    if (isSkiQuery) {
+      const canyonData = await getSkiCanyonConditions();
+      roadData += "\n**UDOT REAL-TIME SKI CANYON DATA:**\n\n";
+      if (canyonData.passes.length > 0)
+        roadData += formatMountainPassesResponse(canyonData.passes) + "\n";
+      if (canyonData.conditions.length > 0)
+        roadData += formatRoadConditionsResponse(canyonData.conditions) + "\n";
+      if (canyonData.alerts.length > 0)
+        roadData += formatUDOTAlertsResponse(canyonData.alerts) + "\n";
+      if (canyonData.plows.length > 0)
+        roadData += formatSnowPlowsResponse(canyonData.plows) + "\n";
+    } else {
+      const [conditions, weatherStations] = await Promise.all([
+        getRoadConditions(),
+        getWeatherStations(),
+      ]);
+      roadData += "\n**UDOT REAL-TIME ROAD DATA:**\n\n";
+      if (conditions.length > 0)
+        roadData += formatRoadConditionsResponse(conditions.slice(0, 10)) + "\n";
+      if (weatherStations.length > 0)
+        roadData += formatWeatherStationsResponse(weatherStations.slice(0, 5)) + "\n";
+    }
+  } catch (error) {
+    console.error("Error fetching road data:", error);
+  }
+
+  return roadData;
+}
