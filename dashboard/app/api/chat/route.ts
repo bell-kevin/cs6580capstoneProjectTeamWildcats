@@ -42,12 +42,23 @@ function extractPredictionParams(
     .join(" ")
     .toLowerCase();
 
-  // Day of week
+  // Day of week — support "today", "tomorrow", or explicit day names
+  const DAY_NAMES = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
   let day_of_week = "Saturday";
-  for (const day of Object.keys(DAY_MAP)) {
-    if (allText.includes(day)) {
-      day_of_week = day.charAt(0).toUpperCase() + day.slice(1);
-      break;
+  if (allText.includes("today")) {
+    const jsDay = new Date().getDay(); // 0=Sun..6=Sat
+    const ourIndex = (jsDay + 6) % 7;  // convert to Mon=0..Sun=6
+    day_of_week = DAY_NAMES[ourIndex].charAt(0).toUpperCase() + DAY_NAMES[ourIndex].slice(1);
+  } else if (allText.includes("tomorrow")) {
+    const jsDay = (new Date().getDay() + 1) % 7;
+    const ourIndex = (jsDay + 6) % 7;
+    day_of_week = DAY_NAMES[ourIndex].charAt(0).toUpperCase() + DAY_NAMES[ourIndex].slice(1);
+  } else {
+    for (const day of Object.keys(DAY_MAP)) {
+      if (allText.includes(day)) {
+        day_of_week = day.charAt(0).toUpperCase() + day.slice(1);
+        break;
+      }
     }
   }
 
@@ -113,7 +124,7 @@ function hasEnoughInfoToPredict(
     .join(" ")
     .toLowerCase();
 
-  const hasDay = Object.keys(DAY_MAP).some((d) => allText.includes(d));
+  const hasDay = Object.keys(DAY_MAP).some((d) => allText.includes(d)) || allText.includes("today") || allText.includes("tomorrow");
   const hasTime = /\b\d{1,2}\s*(am|pm)\b/.test(allText);
   const wantsDefaults = /typical|default|usual|average|use (?:rf|random forest|lstm|the model)|just predict|go ahead|yes.*(?:use|go)|sure|ok/.test(allText);
 
