@@ -8,7 +8,6 @@ import joblib
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.compose import ColumnTransformer
-from sklearn.dummy import DummyRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
@@ -24,6 +23,9 @@ TARGET_COLUMN = "traffic_count_total"
 RANDOM_STATE = 42
 DEFAULT_SPLIT_STRATEGY = "time"
 VALID_SPLIT_STRATEGIES = {"random", "time"}
+SEQUENCE_LENGTH = 48
+FORECAST_HORIZON = 72
+WEEKLY_LAG_HOURS = 168
 
 
 def add_engineered_features(data: pd.DataFrame) -> pd.DataFrame:
@@ -281,6 +283,21 @@ def regression_metrics(y_true: pd.Series, y_pred: pd.Series | list[float]) -> di
     }
 
 
+def build_horizon_weights(horizon: int) -> np.ndarray:
+    weights = np.linspace(1.0, 0.3, num=horizon, dtype=np.float32)
+    return weights / weights.sum()
+
+
+def weighted_mse_numpy(
+    predictions: np.ndarray,
+    targets: np.ndarray,
+    weights: np.ndarray,
+) -> float:
+    error = (predictions - targets) ** 2
+    weighted_error = error * weights.reshape(1, -1)
+    return float(weighted_error.mean())
+
+
 def split_dataset(
     features: pd.DataFrame,
     target: pd.Series,
@@ -345,11 +362,6 @@ def evaluate_split(
         split_strategy=split_strategy,
     )
 
-    baseline = DummyRegressor(strategy="mean")
-    baseline.fit(X_train, y_train)
-    baseline_predictions = baseline.predict(X_test)
-    baseline_scores = regression_metrics(y_test, baseline_predictions)
-
     pipeline = build_model_pipeline()
     pipeline.fit(X_train, y_train)
     champion_predictions = pipeline.predict(X_test)
@@ -359,9 +371,6 @@ def evaluate_split(
         "split_strategy": split_strategy,
         "train_rows": int(len(X_train)),
         "test_rows": int(len(X_test)),
-        "baseline_rmse": baseline_scores["rmse"],
-        "baseline_mae": baseline_scores["mae"],
-        "baseline_r2": baseline_scores["r2"],
         "champion_rmse": champion_scores["rmse"],
         "champion_mae": champion_scores["mae"],
         "champion_r2": champion_scores["r2"],
@@ -441,19 +450,31 @@ def split_into_continuous_segments(df: pd.DataFrame) -> list[pd.DataFrame]:
     return segments
 
 # Create sliding window sequences within each segment, separating features and target and returning feature and target arrays suitable for RNN/LSTM 
-def build_sequences(segments: list[pd.DataFrame], feature_cols: list[str], target_col: str, seq_length:int = 48, horizon:int = 72):
-    X, y = [], []
+def build_sequences(
+    segments: list[pd.DataFrame],
+    feature_cols: list[str],
+    target_col: str,
+    seq_length: int = SEQUENCE_LENGTH,
+    horizon: int = FORECAST_HORIZON,
+    weekly_lag_hours: int | None = None,
+):
+    X, y, naive_weekly_predictions = [], [], []
+    min_history = max(seq_length, weekly_lag_hours or 0)
 
     for seg in segments:
         features = seg[feature_cols].values
         target = seg[target_col].values
 
-        for i in range(seq_length, len(seg) - horizon + 1):
+        for i in range(min_history, len(seg) - horizon + 1):
             # the features window for one sample/window is the previous seq_length rows(48), and the target is the next horizon(72) rows after that
             X.append(features[i-seq_length:i])
             y.append(target[i:i+horizon])
-    
-    return np.array(X), np.array(y)
+            if weekly_lag_hours is not None:
+                naive_weekly_predictions.append(target[i-weekly_lag_hours:i-weekly_lag_hours+horizon])
+
+    if weekly_lag_hours is not None:
+        return np.array(X), np.array(y), np.array(naive_weekly_predictions)
+    return np.array(X), np.array(y), None
 
 # Create pytorch traffic dataset for RNN/LSTM
 class TrafficDataset(Dataset):
@@ -495,8 +516,7 @@ def train_lstm_model(X, y, epochs=25, batch_size=128):
 
     # Create weights for custom loss function to prioritize accuracy nearer to the current time point
     horizon = y.shape[1]
-    weights = torch.linspace(1.0, 0.3, steps=horizon)
-    weights = weights / weights.sum()
+    weights = torch.tensor(build_horizon_weights(horizon), dtype=torch.float32)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
@@ -507,7 +527,7 @@ def train_lstm_model(X, y, epochs=25, batch_size=128):
         for batch_X, batch_y in dataloader:
             optimizer.zero_grad()
             predictions = model(batch_X)
-            loss = weighted_mse(predictions, batch_y, weights=weights)
+            loss = weighted_mse(predictions, batch_y, weights=weights.to(predictions.device))
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item()
@@ -582,16 +602,18 @@ def train_and_evaluate(
 
     feature_columns = train_lstm_df.columns.drop([TARGET_COLUMN, "date_hour"]).tolist()
 
-    X_train_seq, y_train_seq = build_sequences(
+    X_train_seq, y_train_seq, _ = build_sequences(
         train_segments,
         feature_columns,
-        TARGET_COLUMN
+        TARGET_COLUMN,
+        weekly_lag_hours=WEEKLY_LAG_HOURS,
     )
 
-    X_test_seq, y_test_seq = build_sequences(
+    X_test_seq, y_test_seq, y_test_weekly_naive = build_sequences(
         test_segments,
         feature_columns,
-        TARGET_COLUMN
+        TARGET_COLUMN,
+        weekly_lag_hours=WEEKLY_LAG_HOURS,
     )
 
     print(f"Built {len(X_train_seq)} training sequences and {len(X_test_seq)} testing sequences of length 48 hours with a 72 hour horizon for RNN/LSTM model.")
@@ -624,13 +646,33 @@ def train_and_evaluate(
         lstm_predictions.reshape(-1,1)
     ).flatten() 
 
+    y_pred_weekly_naive = target_scaler.inverse_transform(
+        y_test_weekly_naive.reshape(-1, 1)
+    ).flatten()
+
     lstm_rmse = np.sqrt(mean_squared_error(y_true_lstm, y_pred_lstm))
     lstm_mae = mean_absolute_error(y_true_lstm, y_pred_lstm)
     lstm_r2 = r2_score(y_true_lstm, y_pred_lstm)
+    weekly_naive_rmse = np.sqrt(mean_squared_error(y_true_lstm, y_pred_weekly_naive))
+    weekly_naive_mae = mean_absolute_error(y_true_lstm, y_pred_weekly_naive)
+    weekly_naive_r2 = r2_score(y_true_lstm, y_pred_weekly_naive)
+
+    horizon_weights = build_horizon_weights(y_test_seq.shape[1])
+    lstm_weighted_mse = weighted_mse_numpy(lstm_predictions, y_test_seq, horizon_weights)
+    weekly_naive_weighted_mse = weighted_mse_numpy(
+        y_test_weekly_naive,
+        y_test_seq,
+        horizon_weights,
+    )
 
     print("LSTM RMSE:", lstm_rmse)
     print("LSTM MAE:", lstm_mae)
     print("LSTM R2:", lstm_r2)
+    print("LSTM weighted MSE:", lstm_weighted_mse)
+    print("Weekly naive RMSE:", weekly_naive_rmse)
+    print("Weekly naive MAE:", weekly_naive_mae)
+    print("Weekly naive R2:", weekly_naive_r2)
+    print("Weekly naive weighted MSE:", weekly_naive_weighted_mse)
 
     split_results = evaluate_split(
         features=features,
@@ -668,10 +710,11 @@ def train_and_evaluate(
         [
             {
                 "split_strategy": split_results["split_strategy"],
-                "model": "baseline_dummy_mean",
-                "rmse": split_results["baseline_rmse"],
-                "mae": split_results["baseline_mae"],
-                "r2": split_results["baseline_r2"],
+                "model": "baseline_weekly_naive_sequence",
+                "rmse": weekly_naive_rmse,
+                "mae": weekly_naive_mae,
+                "r2": weekly_naive_r2,
+                "weighted_mse": weekly_naive_weighted_mse,
             },
             {
                 "split_strategy": split_results["split_strategy"],
@@ -679,6 +722,7 @@ def train_and_evaluate(
                 "rmse": split_results["champion_rmse"],
                 "mae": split_results["champion_mae"],
                 "r2": split_results["champion_r2"],
+                "weighted_mse": np.nan,
             },
             {
                 "split_strategy": "sequence",
@@ -686,6 +730,7 @@ def train_and_evaluate(
                 "rmse": lstm_rmse,
                 "mae": lstm_mae,
                 "r2": lstm_r2,
+                "weighted_mse": lstm_weighted_mse,
             }
         ]
     )
@@ -728,11 +773,14 @@ def train_and_evaluate(
         "train_rows": split_results["train_rows"],
         "test_rows": split_results["test_rows"],
         "dropped_target_rows": dropped_target_rows,
-        "baseline_rmse": split_results["baseline_rmse"],
-        "baseline_mae": split_results["baseline_mae"],
+        "baseline_weekly_naive_rmse": weekly_naive_rmse,
+        "baseline_weekly_naive_mae": weekly_naive_mae,
+        "baseline_weekly_naive_r2": weekly_naive_r2,
+        "baseline_weekly_naive_weighted_mse": weekly_naive_weighted_mse,
         "champion_rmse": split_results["champion_rmse"],
         "champion_mae": split_results["champion_mae"],
         "champion_r2": split_results["champion_r2"],
+        "lstm_weighted_mse": lstm_weighted_mse,
         "model_artifact": str(artifact_path),
         "metrics_file": str(metrics_file),
         "actual_vs_predicted_plot": str(actual_plot),
