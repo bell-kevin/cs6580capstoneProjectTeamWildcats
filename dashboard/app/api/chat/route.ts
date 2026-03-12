@@ -153,13 +153,14 @@ async function fetchPredictionIfNeeded(
     if (!res.ok) return "";
     const data = await res.json();
 
-    return `**🤖 ML PREDICTION RESULT (${modelLabel} Model)**
+    return `**🤖 ML PREDICTION RESULT**
+- **MODEL USED: ${modelLabel}** ← always name this exact model in your response
 - Predicted traffic: ${data.prediction} vehicles/hour
 - Conditions: ${params.day_of_week} at ${params.hour}:00 · ${params.temp_f}°F · ${params.snow_depth_in}" snow · ${params.humidity_pct}% humidity · ${params.wind_speed_mph} mph wind
 - Weekend: ${params.is_weekend ? "Yes" : "No"} · Holiday: ${params.is_federal_holiday ? "Yes" : "No"} · Month: ${params.month}
 - Confidence: ${data.confidence}
 
-Interpret this for the user: light traffic = <400 vehicles/hr, moderate = 400-600, busy = 600-800, very busy = >800. Explain what the number means in practical terms for driving to Snowbasin.`;
+Interpret this for the user. IMPORTANT: You MUST say "${modelLabel} model" (not any other model name). Light traffic = <400/hr, moderate = 400-600, busy = 600-800, very busy = >800. Explain what the number means in practical terms for driving to Snowbasin.`;
   } catch {
     return "";
   }
