@@ -52,6 +52,7 @@ export default function GuestPage() {
 
       const decoder = new TextDecoder();
       let fullContent = "";
+      let responseMeta: import("@/components/chat-messages").MessageMeta | undefined;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -68,6 +69,9 @@ export default function GuestPage() {
             try {
               const parsed = JSON.parse(data);
 
+              if (parsed.meta) {
+                responseMeta = parsed.meta;
+              }
               if (parsed.content) {
                 fullContent += parsed.content;
                 setStreamingContent(fullContent);
@@ -87,6 +91,7 @@ export default function GuestPage() {
             id: `assistant-${Date.now()}`,
             role: "assistant",
             content: fullContent,
+            meta: responseMeta,
           },
         ]);
       }
