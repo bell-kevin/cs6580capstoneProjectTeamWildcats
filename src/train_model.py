@@ -474,7 +474,7 @@ def build_sequences(
 
     if weekly_lag_hours is not None:
         return np.array(X), np.array(y), np.array(naive_weekly_predictions)
-    return np.array(X), np.array(y)
+    return np.array(X), np.array(y), None
 
 # Create pytorch traffic dataset for RNN/LSTM
 class TrafficDataset(Dataset):
