@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Copy, Check, Pencil, RefreshCw, Volume2, VolumeX, Snowflake } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Copy, Check, Pencil, RefreshCw, Volume2, VolumeX, Snowflake, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MapDisplay, parsePlacesFromContent, cleanMapDataFromContent } from "./map-display";
 import { Button } from "@/components/ui/button";
@@ -30,6 +32,31 @@ interface ChatMessagesProps {
   streamingContent?: string;
   onEditMessage?: (messageId: string, newContent: string) => void;
   onResendMessage?: (content: string) => void;
+  onRetry?: () => void;
+  onSuggest?: (msg: string) => void;
+}
+
+// --- Follow-up suggestion helper ---
+function getFollowUps(content: string): string[] {
+  const lower = content.toLowerCase();
+  const suggestions: string[] = [];
+  if (lower.includes("vehicle") || lower.includes("traffic") || lower.includes("forecast")) {
+    suggestions.push("Check SR-167 road conditions");
+    suggestions.push("Compare weekend vs weekday traffic");
+  }
+  if (lower.includes("sr-167") || lower.includes("road condition") || lower.includes("udot")) {
+    suggestions.push("Predict traffic for tomorrow morning");
+    suggestions.push("Are chains required on SR-210?");
+  }
+  if (lower.includes("bus") || lower.includes("uta") || lower.includes("transit")) {
+    suggestions.push("How busy will Snowbasin be today?");
+    suggestions.push("What are SR-167 conditions?");
+  }
+  if (suggestions.length === 0) {
+    suggestions.push("Predict traffic this Saturday at 9am");
+    suggestions.push("SR-167 road conditions");
+  }
+  return suggestions.slice(0, 3);
 }
 
 export function ChatMessages({
@@ -38,6 +65,8 @@ export function ChatMessages({
   streamingContent,
   onEditMessage,
   onResendMessage,
+  onRetry,
+  onSuggest,
 }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -59,6 +88,22 @@ export function ChatMessages({
     );
   }
 
+  // Determine which message should receive the onRetry prop:
+  // the last message if it is an assistant error and not currently loading.
+  const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+  const lastMsgIsError =
+    lastMsg !== null &&
+    lastMsg.role === "assistant" &&
+    /^[⏳🔄🔧🔑💥📡]/.test(lastMsg.content);
+
+  // Determine whether to show follow-up suggestions:
+  const showSuggestions =
+    lastMsg !== null &&
+    lastMsg.role === "assistant" &&
+    !lastMsgIsError &&
+    !isLoading &&
+    !!onSuggest;
+
   return (
     <div className="h-full">
       <div className="mx-auto max-w-3xl px-3 sm:px-4 py-4 sm:py-8">
@@ -68,6 +113,11 @@ export function ChatMessages({
             message={message}
             onEdit={onEditMessage}
             onResend={onResendMessage}
+            onRetry={
+              message.id === lastMsg?.id && lastMsgIsError && !isLoading
+                ? onRetry
+                : undefined
+            }
           />
         ))}
 
@@ -82,6 +132,23 @@ export function ChatMessages({
             isStreaming={isLoading && !streamingContent}
             streamingMeta={streamingContent ? undefined : undefined}
           />
+        )}
+
+        {/* Follow-up suggestion chips */}
+        {showSuggestions && (
+          <div className="pb-2">
+            <div className="flex flex-wrap gap-2 ml-1">
+              {getFollowUps(lastMsg!.content).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => onSuggest!(s)}
+                  className="flex items-center gap-1 rounded-full border bg-muted/50 px-3 py-1 text-xs hover:bg-muted hover:border-primary/40 transition-colors"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         <div ref={bottomRef} />
@@ -127,17 +194,44 @@ function ModelBadge({ model, sources }: { model?: string; sources?: string[] }) 
   );
 }
 
+function CodeBlock({ children, className }: { children?: React.ReactNode; className?: string }) {
+  const [codeCopied, setCodeCopied] = useState(false);
+  const code = String(children).replace(/\n$/, "");
+  const copyCode = async () => {
+    await navigator.clipboard.writeText(code);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
+  };
+  return (
+    <div className="relative group/code my-2">
+      <pre className={cn("rounded-lg bg-muted p-4 overflow-x-auto text-xs", className)}>
+        <code>{children}</code>
+      </pre>
+      <button
+        onClick={copyCode}
+        className="absolute top-2 right-2 opacity-0 group-hover/code:opacity-100 transition-opacity p-1.5 rounded-md bg-background/80 hover:bg-background border text-xs"
+        title="Copy code"
+      >
+        {codeCopied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+      </button>
+    </div>
+  );
+}
+
+
 function MessageBubble({
   message,
   isStreaming,
   onEdit,
   onResend,
+  onRetry,
 }: {
   message: Message;
   isStreaming?: boolean;
   streamingMeta?: MessageMeta;
   onEdit?: (messageId: string, newContent: string) => void;
   onResend?: (content: string) => void;
+  onRetry?: () => void;
 }) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
@@ -149,6 +243,7 @@ function MessageBubble({
   // Parse places from assistant messages
   const places = !isUser ? parsePlacesFromContent(message.content) : null;
   const displayContent = places ? cleanMapDataFromContent(message.content) : message.content;
+  const isError = !isUser && /^[⏳🔄🔧🔑💥📡]/.test(message.content);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content);
@@ -218,6 +313,13 @@ function MessageBubble({
         {!isUser && !isStreaming && (
           <ModelBadge model={message.meta?.model} sources={message.meta?.sources} />
         )}
+        {showActions && (
+          <span className="text-[10px] text-muted-foreground/60 ml-auto">
+            {message.createdAt
+              ? new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+              : "just now"}
+          </span>
+        )}
       </div>
 
       {/* Message Content */}
@@ -241,7 +343,10 @@ function MessageBubble({
             "relative max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 text-sm sm:text-base",
             isUser
               ? "bg-primary text-primary-foreground"
-              : "bg-card text-card-foreground shadow-sm border"
+              : isError
+              ? "bg-destructive/5 text-card-foreground shadow-sm border border-destructive/30"
+              : "bg-card text-card-foreground shadow-sm border",
+            !isUser && isStreaming && "ring-1 ring-primary/20"
           )}
         >
           {isStreaming ? (
@@ -251,11 +356,34 @@ function MessageBubble({
               <div className="h-2 w-2 animate-bounce rounded-full bg-current opacity-60" />
             </div>
           ) : (
-            <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap wrap-break-word">
-              {displayContent}
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  code({ className, children, ...props }) {
+                    const isBlock = className?.includes("language-");
+                    if (isBlock) {
+                      return <CodeBlock className={className}>{children}</CodeBlock>;
+                    }
+                    return <code className="rounded bg-muted px-1 py-0.5 text-xs font-mono" {...props}>{children}</code>;
+                  },
+                }}
+              >
+                {displayContent}
+              </ReactMarkdown>
             </div>
           )}
         </div>
+      )}
+
+      {/* Retry button for error assistant messages */}
+      {isError && onRetry && (
+        <button
+          onClick={onRetry}
+          className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors px-1"
+        >
+          <RefreshCw className="h-3 w-3" /> Retry
+        </button>
       )}
 
       {/* Message Actions */}
@@ -263,7 +391,7 @@ function MessageBubble({
         <div
           className={cn(
             "flex items-center gap-1 mt-2 transition-opacity duration-200",
-            showActions ? "opacity-100" : "opacity-0 sm:group-hover:opacity-100"
+            showActions ? "opacity-100" : "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
           )}
         >
           <Tooltip>

@@ -8,9 +8,19 @@ interface ChatWelcomeProps {
   selectedModel: ModelType;
   onModelChange: (model: ModelType) => void;
   isGuest?: boolean;
+  onSend?: (message: string) => void;
 }
 
-export function ChatWelcome({ selectedModel, onModelChange, isGuest }: ChatWelcomeProps) {
+const QUICK_PROMPTS = [
+  { icon: "🚗", label: "Traffic today 8am", message: "How busy is traffic to Snowbasin today at 8am?" },
+  { icon: "🏔️", label: "SR-167 conditions", message: "What are the current road conditions on SR-167 Trappers Loop to Snowbasin?" },
+  { icon: "🚌", label: "UTA bus options", message: "What UTA bus options are there to Snowbasin?" },
+  { icon: "🗺️", label: "Directions to Snowbasin", message: "How do I get to Snowbasin Resort from Ogden?" },
+  { icon: "📅", label: "Busy this weekend?", message: "How busy will Snowbasin be this Saturday at 9am? Use typical winter conditions." },
+  { icon: "⚠️", label: "Any closures?", message: "Are there any road closures or traction laws on SR-39 or SR-167 right now?" },
+];
+
+export function ChatWelcome({ selectedModel, onModelChange, isGuest, onSend }: ChatWelcomeProps) {
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -63,7 +73,7 @@ export function ChatWelcome({ selectedModel, onModelChange, isGuest }: ChatWelco
           </p>
           <div className="mt-2 flex items-center gap-1">
             <Activity className="h-3 w-3 text-green-500" />
-            <span className="text-xs text-green-600 dark:text-green-400 font-medium">Deployed</span>
+            <span className="text-xs text-green-600 dark:text-green-400 font-medium">Deployed on HuggingFace</span>
           </div>
         </button>
 
@@ -98,7 +108,7 @@ export function ChatWelcome({ selectedModel, onModelChange, isGuest }: ChatWelco
           </p>
           <div className="mt-2 flex items-center gap-1">
             <Brain className="h-3 w-3 text-green-500" />
-            <span className="text-xs text-green-600 dark:text-green-400 font-medium">Available</span>
+            <span className="text-xs text-green-600 dark:text-green-400 font-medium">Deployed on HuggingFace</span>
           </div>
         </button>
       </div>
@@ -156,6 +166,26 @@ export function ChatWelcome({ selectedModel, onModelChange, isGuest }: ChatWelco
           </div>
         </div>
       </div>
+
+      {/* Quick Prompt Chips */}
+      {onSend && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground px-1 font-medium">Quick questions</p>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_PROMPTS.map((p) => (
+              <button
+                key={p.label}
+                type="button"
+                onClick={() => onSend(p.message)}
+                className="flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted hover:border-primary/40 transition-colors"
+              >
+                <span>{p.icon}</span>
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Prediction parameters info */}
       <div className="rounded-xl border bg-muted/30 p-4">

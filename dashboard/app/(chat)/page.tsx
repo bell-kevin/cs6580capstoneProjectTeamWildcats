@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/sidebar";
 import { SnowAnimation } from "@/components/snow-animation";
 import { SnowToggle } from "@/components/snow-toggle";
+import { SpaceStatus } from "@/components/space-status";
+import { OfflineBanner } from "@/components/offline-banner";
 import { useSnow } from "@/hooks/use-snow";
 
 export default function ChatPage() {
@@ -135,6 +137,9 @@ export default function ChatPage() {
               if (parsed.meta) {
                 responseMeta = parsed.meta;
               }
+              if (parsed.error) {
+                fullContent = parsed.error;
+              }
               if (parsed.content) {
                 fullContent += parsed.content;
                 setStreamingContent(fullContent);
@@ -220,10 +225,13 @@ export default function ChatPage() {
           </SidebarTrigger>
           <Snowflake className="h-5 w-5 text-blue-500" />
           <span className="font-semibold">Snowbasin</span>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <SpaceStatus />
             <SnowToggle enabled={snowEnabled} onToggle={toggleSnow} />
           </div>
         </header>
+
+        <OfflineBanner />
 
         <div className="flex flex-1 flex-col min-h-0">
           <div className="flex-1 overflow-y-auto min-h-0">
@@ -231,7 +239,7 @@ export default function ChatPage() {
             {/* Welcome screen — shown when no messages */}
             {messages.length === 0 && !isLoading && (
               <div className="mx-auto w-full max-w-3xl px-4 py-6">
-                <ChatWelcome selectedModel={selectedModel} onModelChange={setSelectedModel} />
+                <ChatWelcome selectedModel={selectedModel} onModelChange={setSelectedModel} onSend={handleSendMessage} />
               </div>
             )}
 
@@ -243,6 +251,11 @@ export default function ChatPage() {
                 streamingContent={streamingContent}
                 onEditMessage={handleEditMessage}
                 onResendMessage={handleResendMessage}
+                onRetry={() => {
+                  const lastUser = [...messages].reverse().find(m => m.role === "user");
+                  if (lastUser) handleSendMessage(lastUser.content);
+                }}
+                onSuggest={handleSendMessage}
               />
             )}
           </div>

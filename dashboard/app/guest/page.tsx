@@ -8,6 +8,9 @@ import { ChatWelcome } from "@/components/ChatWelcome";
 import { Snowflake, LogIn } from "lucide-react";
 import { SnowAnimation } from "@/components/snow-animation";
 import { SnowToggle } from "@/components/snow-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { SpaceStatus } from "@/components/space-status";
+import { OfflineBanner } from "@/components/offline-banner";
 import { useSnow } from "@/hooks/use-snow";
 import { Button } from "@/components/ui/button";
 
@@ -71,6 +74,9 @@ export default function GuestPage() {
 
               if (parsed.meta) {
                 responseMeta = parsed.meta;
+              }
+              if (parsed.error) {
+                fullContent = parsed.error;
               }
               if (parsed.content) {
                 fullContent += parsed.content;
@@ -142,15 +148,19 @@ export default function GuestPage() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <SpaceStatus />
+          <ThemeToggle />
           <SnowToggle enabled={snowEnabled} onToggle={toggleSnow} />
           <Link href="/login">
             <Button variant="outline" size="sm" className="gap-2">
               <LogIn className="h-4 w-4" />
-              Sign In
+              <span className="hidden sm:inline">Sign In</span>
             </Button>
           </Link>
         </div>
       </header>
+
+      <OfflineBanner />
 
       {/* Main chat area */}
       <div className="flex flex-1 flex-col min-h-0 relative z-10">
@@ -163,6 +173,7 @@ export default function GuestPage() {
                 selectedModel={selectedModel}
                 onModelChange={setSelectedModel}
                 isGuest
+                onSend={handleSendMessage}
               />
               <p className="text-center text-xs text-muted-foreground mt-4">
                 <Link href="/signup" className="text-blue-500 hover:underline font-medium">
@@ -181,6 +192,11 @@ export default function GuestPage() {
               streamingContent={streamingContent}
               onEditMessage={handleEditMessage}
               onResendMessage={handleResendMessage}
+              onRetry={() => {
+                const lastUser = [...messages].reverse().find(m => m.role === "user");
+                if (lastUser) handleSendMessage(lastUser.content);
+              }}
+              onSuggest={handleSendMessage}
             />
           )}
         </div>

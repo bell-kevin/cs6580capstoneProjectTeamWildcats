@@ -323,10 +323,10 @@ export function ChatSidebar({
                   <AvatarFallback>{userInitials}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-1 flex-col items-start text-left">
-                  <span className="text-sm font-medium truncate max-w-[140px]">
+                  <span className="text-sm font-medium truncate max-w-35">
                     {userName}
                   </span>
-                  <span className="text-xs text-muted-foreground truncate max-w-[140px]">
+                  <span className="text-xs text-muted-foreground truncate max-w-35">
                     {user.email}
                   </span>
                 </div>

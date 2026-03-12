@@ -290,8 +290,9 @@ export async function POST(request: Request) {
           controller.close();
         } catch (error) {
           console.error("Stream error:", error);
+          const errMsg = getErrorMessage(error);
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ error: "Stream error" })}\n\n`)
+            encoder.encode(`data: ${JSON.stringify({ error: errMsg })}\n\n`)
           );
           controller.close();
         }
@@ -309,6 +310,22 @@ export async function POST(request: Request) {
     console.error("Chat API error:", error);
     return new Response("Internal Server Error", { status: 500 });
   }
+}
+
+function getErrorMessage(error: unknown): string {
+  if (!error || typeof error !== "object") return "Something went wrong. Please try again.";
+  const e = error as Record<string, unknown>;
+  const status = e.status as number | undefined;
+  if (status === 429) return "⏳ Rate limit reached — too many requests. Please wait a moment and try again.";
+  if (status === 529) return "🔄 Anthropic's servers are currently overloaded. Please try again in a few seconds.";
+  if (status === 503) return "🔧 The AI service is temporarily unavailable. Please try again shortly.";
+  if (status === 401) return "🔑 API key issue — please contact support.";
+  if (status === 500) return "💥 Internal server error. Please try again.";
+  const msg = (e.message as string) || "";
+  if (msg.toLowerCase().includes("rate")) return "⏳ Rate limit reached. Please wait a moment and try again.";
+  if (msg.toLowerCase().includes("overload")) return "🔄 AI servers are overloaded right now. Please try again in a few seconds.";
+  if (msg.toLowerCase().includes("network") || msg.toLowerCase().includes("fetch")) return "📡 Network error — check your connection and try again.";
+  return "Something went wrong. Please try again.";
 }
 
 async function handleGuestChat(content: string, model: string) {
@@ -352,8 +369,9 @@ async function handleGuestChat(content: string, model: string) {
         controller.close();
       } catch (error) {
         console.error("Guest stream error:", error);
+        const errMsg = getErrorMessage(error);
         controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ error: "Stream error" })}\n\n`)
+          encoder.encode(`data: ${JSON.stringify({ error: errMsg })}\n\n`)
         );
         controller.close();
       }
