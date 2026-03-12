@@ -7,9 +7,10 @@ import type { ModelType } from "@/components/chat-input";
 interface ChatWelcomeProps {
   selectedModel: ModelType;
   onModelChange: (model: ModelType) => void;
+  isGuest?: boolean;
 }
 
-export function ChatWelcome({ selectedModel, onModelChange }: ChatWelcomeProps) {
+export function ChatWelcome({ selectedModel, onModelChange, isGuest }: ChatWelcomeProps) {
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -20,6 +21,13 @@ export function ChatWelcome({ selectedModel, onModelChange }: ChatWelcomeProps) 
         <p className="text-sm text-muted-foreground">
           ML-powered traffic predictions · Live UDOT road conditions · UTA transit
         </p>
+        {isGuest && (
+          <div className="inline-flex items-center gap-1.5 mt-1 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+            <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+              👤 Guest Mode — chats are not saved
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Model Selector Cards */}

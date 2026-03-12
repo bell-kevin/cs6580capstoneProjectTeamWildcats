@@ -4,7 +4,8 @@ import { useState, useRef } from "react";
 import Link from "next/link";
 import { ChatMessages, type Message } from "@/components/chat-messages";
 import { ChatInput, type ModelType } from "@/components/chat-input";
-import { Loader2, Snowflake, Train, LogIn } from "lucide-react";
+import { ChatWelcome } from "@/components/ChatWelcome";
+import { Snowflake, LogIn } from "lucide-react";
 import { SnowAnimation } from "@/components/snow-animation";
 import { SnowToggle } from "@/components/snow-toggle";
 import { useSnow } from "@/hooks/use-snow";
@@ -150,59 +151,20 @@ export default function GuestPage() {
       <div className="flex flex-1 flex-col min-h-0 relative z-10">
         {/* Scrollable messages area */}
         <div className="flex-1 overflow-y-auto min-h-0">
-          {/* Info Banner - Show when no messages */}
+          {/* Welcome Screen - Show when no messages */}
           {messages.length === 0 && !isLoading && (
-            <div className="mx-auto w-full max-w-3xl px-4 pt-6">
-              <div className="rounded-xl border bg-linear-to-r from-blue-50 to-cyan-50 p-6 dark:from-blue-950/30 dark:to-cyan-950/30 dark:border-blue-900/50">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-blue-400 to-cyan-500">
-                    <Snowflake className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-foreground">Welcome to Snowbasin</h2>
-                    <p className="text-xs text-muted-foreground">Guest Mode - Chats are not saved</p>
-                  </div>
-                </div>
-
-                <p className="text-sm text-muted-foreground mb-4">
-                  I can help you with Utah-specific information:
-                </p>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex items-start gap-3 rounded-lg bg-white/60 p-3 dark:bg-white/5">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500 text-white">
-                      <Snowflake className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-sm">Snow & Weather</h3>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Snow forecasts, ski conditions, road conditions
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 rounded-lg bg-white/60 p-3 dark:bg-white/5">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500 text-white">
-                      <Train className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-sm">UTA Transit</h3>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Bus schedules, TRAX times, routes
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-blue-200/50 dark:border-blue-800/50">
-                  <p className="text-xs text-muted-foreground">
-                    <Link href="/signup" className="text-blue-500 hover:underline font-medium">
-                      Create an account
-                    </Link>{" "}
-                    to save your chat history
-                  </p>
-                </div>
-              </div>
+            <div className="mx-auto w-full max-w-3xl px-4 pt-8 pb-4">
+              <ChatWelcome
+                selectedModel={selectedModel}
+                onModelChange={setSelectedModel}
+                isGuest
+              />
+              <p className="text-center text-xs text-muted-foreground mt-4">
+                <Link href="/signup" className="text-blue-500 hover:underline font-medium">
+                  Create an account
+                </Link>{" "}
+                to save your chat history
+              </p>
             </div>
           )}
 
