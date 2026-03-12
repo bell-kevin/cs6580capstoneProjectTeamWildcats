@@ -90,36 +90,40 @@ export function ChatMessages({
   );
 }
 
-const SOURCE_BADGE: Record<string, { label: string; color: string }> = {
-  UDOT: { label: "UDOT", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
-  UTA:  { label: "UTA",  color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
-  ML:   { label: "",     color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+const SOURCE_BADGE: Record<string, { icon: string; label: string; color: string; border: string }> = {
+  UDOT:  { icon: "📡", label: "UDOT",  color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400", border: "border-orange-200 dark:border-orange-800" },
+  UTA:   { icon: "🚌", label: "UTA",   color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",   border: "border-green-200 dark:border-green-800" },
+  ML:    { icon: "",   label: "",      color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",        border: "border-blue-200 dark:border-blue-800" },
+  Maps:  { icon: "🗺️", label: "Maps",  color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400", border: "border-purple-200 dark:border-purple-800" },
 };
 
 function ModelBadge({ model, sources }: { model?: string; sources?: string[] }) {
   if (!model) return null;
   const modelLabel = model === "lstm" ? "🧠 LSTM" : "🌲 Random Forest";
+  const hasPrediction = sources?.includes("ML");
   return (
-    <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-      {model && (
+    <>
+      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+        {modelLabel}
+      </span>
+      {hasPrediction && (
         <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-          {modelLabel}
+          {model === "lstm" ? "🧠 LSTM Prediction" : "🌲 RF Prediction"}
         </span>
       )}
-      {sources?.map((src) => {
+      {sources?.filter((s) => s !== "ML").map((src) => {
         const badge = SOURCE_BADGE[src];
         if (!badge) return null;
-        const label = src === "ML" ? (model === "lstm" ? "🧠 LSTM Prediction" : "🌲 RF Prediction") : `📡 ${badge.label}`;
         return (
           <span
             key={src}
-            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium border ${badge.color} ${src === "UDOT" ? "border-orange-200 dark:border-orange-800" : src === "UTA" ? "border-green-200 dark:border-green-800" : "border-blue-200 dark:border-blue-800"}`}
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium border ${badge.color} ${badge.border}`}
           >
-            {label}
+            {badge.icon} {badge.label}
           </span>
         );
       })}
-    </div>
+    </>
   );
 }
 

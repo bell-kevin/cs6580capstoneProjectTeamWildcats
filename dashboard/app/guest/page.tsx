@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { ChatMessages, type Message } from "@/components/chat-messages";
+import { ChatMessages, type Message, type MessageMeta } from "@/components/chat-messages";
 import { ChatInput, type ModelType } from "@/components/chat-input";
 import { ChatWelcome } from "@/components/ChatWelcome";
 import { Snowflake, LogIn } from "lucide-react";
@@ -52,7 +52,7 @@ export default function GuestPage() {
 
       const decoder = new TextDecoder();
       let fullContent = "";
-      let responseMeta: import("@/components/chat-messages").MessageMeta | undefined;
+      let responseMeta: MessageMeta | undefined;
 
       while (true) {
         const { done, value } = await reader.read();

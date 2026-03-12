@@ -230,10 +230,14 @@ export async function POST(request: Request) {
       .filter(Boolean)
       .join("\n\n---\n\n");
 
+    const mapsKeywords = ["direction", "how do i get", "how to get", "route to", "map", "navigate", "from ogden", "from salt lake"];
+    const usesMaps = mapsKeywords.some((k) => content.toLowerCase().includes(k));
+
     const sources: string[] = [];
     if (predictionData) sources.push("ML");
     if (roadData) sources.push("UDOT");
     if (transitData) sources.push("UTA");
+    if (usesMaps) sources.push("Maps");
 
     const encoder = new TextEncoder();
     let fullResponse = "";
@@ -252,7 +256,7 @@ export async function POST(request: Request) {
             encoder.encode(`data: ${JSON.stringify({ meta: { model, sources } })}\n\n`)
           );
 
-          for await (const chunk of streamChatResponse(messagesForAI, realTimeData)) {
+          for await (const chunk of streamChatResponse(messagesForAI, realTimeData, model)) {
             fullResponse += chunk;
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({ content: chunk })}\n\n`)
@@ -318,10 +322,14 @@ async function handleGuestChat(content: string, model: string) {
     .filter(Boolean)
     .join("\n\n---\n\n");
 
+  const mapsKeywordsGuest = ["direction", "how do i get", "how to get", "route to", "map", "navigate", "from ogden", "from salt lake"];
+  const usesMapsGuest = mapsKeywordsGuest.some((k) => content.toLowerCase().includes(k));
+
   const guestSources: string[] = [];
   if (predictionData) guestSources.push("ML");
   if (roadData) guestSources.push("UDOT");
   if (transitData) guestSources.push("UTA");
+  if (usesMapsGuest) guestSources.push("Maps");
 
   const encoder = new TextEncoder();
 
@@ -333,7 +341,8 @@ async function handleGuestChat(content: string, model: string) {
         );
         for await (const chunk of streamChatResponse(
           [{ role: "user" as const, content }],
-          realTimeData
+          realTimeData,
+          model
         )) {
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ content: chunk })}\n\n`)
