@@ -229,6 +229,11 @@ export async function POST(request: Request) {
       .filter(Boolean)
       .join("\n\n---\n\n");
 
+    const sources: string[] = [];
+    if (predictionData) sources.push("ML");
+    if (roadData) sources.push("UDOT");
+    if (transitData) sources.push("UTA");
+
     const encoder = new TextEncoder();
     let fullResponse = "";
 
@@ -240,6 +245,11 @@ export async function POST(request: Request) {
               encoder.encode(`data: ${JSON.stringify({ chatId: currentChatId })}\n\n`)
             );
           }
+
+          // Emit meta so client can show model/source badges
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ meta: { model, sources } })}\n\n`)
+          );
 
           for await (const chunk of streamChatResponse(messagesForAI, realTimeData)) {
             fullResponse += chunk;
@@ -307,11 +317,19 @@ async function handleGuestChat(content: string, model: string) {
     .filter(Boolean)
     .join("\n\n---\n\n");
 
+  const guestSources: string[] = [];
+  if (predictionData) guestSources.push("ML");
+  if (roadData) guestSources.push("UDOT");
+  if (transitData) guestSources.push("UTA");
+
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
     async start(controller) {
       try {
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify({ meta: { model, sources: guestSources } })}\n\n`)
+        );
         for await (const chunk of streamChatResponse(
           [{ role: "user" as const, content }],
           realTimeData

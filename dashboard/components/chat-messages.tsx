@@ -11,11 +11,17 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+export interface MessageMeta {
+  model?: string;   // "random-forest" | "lstm"
+  sources?: string[]; // ["UDOT", "UTA", "ML"]
+}
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   createdAt?: Date | string;
+  meta?: MessageMeta;
 }
 
 interface ChatMessagesProps {
@@ -74,11 +80,45 @@ export function ChatMessages({
               content: streamingContent || "",
             }}
             isStreaming={isLoading && !streamingContent}
+            streamingMeta={streamingContent ? undefined : undefined}
           />
         )}
 
         <div ref={bottomRef} />
       </div>
+    </div>
+  );
+}
+
+const SOURCE_BADGE: Record<string, { label: string; color: string }> = {
+  UDOT: { label: "UDOT", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
+  UTA:  { label: "UTA",  color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+  ML:   { label: "",     color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+};
+
+function ModelBadge({ model, sources }: { model?: string; sources?: string[] }) {
+  if (!model) return null;
+  const modelLabel = model === "lstm" ? "🧠 LSTM" : "🌲 Random Forest";
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+      {model && (
+        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+          {modelLabel}
+        </span>
+      )}
+      {sources?.map((src) => {
+        const badge = SOURCE_BADGE[src];
+        if (!badge) return null;
+        const label = src === "ML" ? (model === "lstm" ? "🧠 LSTM Prediction" : "🌲 RF Prediction") : `📡 ${badge.label}`;
+        return (
+          <span
+            key={src}
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium border ${badge.color} ${src === "UDOT" ? "border-orange-200 dark:border-orange-800" : src === "UTA" ? "border-green-200 dark:border-green-800" : "border-blue-200 dark:border-blue-800"}`}
+          >
+            {label}
+          </span>
+        );
+      })}
     </div>
   );
 }
@@ -91,6 +131,7 @@ function MessageBubble({
 }: {
   message: Message;
   isStreaming?: boolean;
+  streamingMeta?: MessageMeta;
   onEdit?: (messageId: string, newContent: string) => void;
   onResend?: (content: string) => void;
 }) {
@@ -165,13 +206,15 @@ function MessageBubble({
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      {/* Message Label */}
-      <span className={cn(
-        "text-xs font-medium mb-1.5 px-1",
-        isUser ? "text-primary" : "text-muted-foreground"
-      )}>
-        {isUser ? "You" : "Snowbasin"}
-      </span>
+      {/* Message Label + inline source badges */}
+      <div className={cn("flex items-center gap-1.5 flex-wrap mb-1.5 px-1", isUser ? "justify-end" : "justify-start")}>
+        <span className={cn("text-xs font-medium", isUser ? "text-primary" : "text-muted-foreground")}>
+          {isUser ? "You" : "Snowbasin"}
+        </span>
+        {!isUser && !isStreaming && (
+          <ModelBadge model={message.meta?.model} sources={message.meta?.sources} />
+        )}
+      </div>
 
       {/* Message Content */}
       {isEditing ? (

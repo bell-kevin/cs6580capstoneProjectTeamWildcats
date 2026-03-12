@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { ChatSidebar } from "@/components/chat-sidebar";
-import { ChatMessages, type Message } from "@/components/chat-messages";
+import { ChatMessages, type Message, type MessageMeta } from "@/components/chat-messages";
 import { ChatInput, type ModelType } from "@/components/chat-input";
 import { ChatWelcome } from "@/components/ChatWelcome";
 import type { Chat } from "@/lib/db/schema";
@@ -112,6 +112,7 @@ export default function ChatPage() {
       let fullContent = "";
       let newChatId: string | null = null;
       let newTitle: string | null = null;
+      let responseMeta: MessageMeta | undefined;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -131,6 +132,9 @@ export default function ChatPage() {
                 newChatId = parsed.chatId;
                 setCurrentChatId(newChatId);
               }
+              if (parsed.meta) {
+                responseMeta = parsed.meta;
+              }
               if (parsed.content) {
                 fullContent += parsed.content;
                 setStreamingContent(fullContent);
@@ -148,7 +152,7 @@ export default function ChatPage() {
       if (fullContent) {
         setMessages((prev) => [
           ...prev,
-          { id: `assistant-${Date.now()}`, role: "assistant", content: fullContent },
+          { id: `assistant-${Date.now()}`, role: "assistant", content: fullContent, meta: responseMeta },
         ]);
       }
 
