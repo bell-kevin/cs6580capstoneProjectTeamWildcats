@@ -13,6 +13,8 @@
 
 Predict peak-hour traffic volume on Trappers Loop (SR-167) to optimize mountain resort staffing and parking operations 72 hours in advance.
 
+https://dashboard-snowbasin-wildcats.vercel.app/
+
 ## Sprint 3 modeling workflow
 
 Run the full modeling and evaluation pipeline after generating processed data:
