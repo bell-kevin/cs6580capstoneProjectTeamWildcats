@@ -2,11 +2,15 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { ChatMessages, type Message } from "@/components/chat-messages";
-import { ChatInput } from "@/components/chat-input";
-import { Loader2, Snowflake, Train, LogIn } from "lucide-react";
+import { ChatMessages, type Message, type MessageMeta } from "@/components/chat-messages";
+import { ChatInput, type ModelType } from "@/components/chat-input";
+import { ChatWelcome } from "@/components/ChatWelcome";
+import { Snowflake, LogIn } from "lucide-react";
 import { SnowAnimation } from "@/components/snow-animation";
 import { SnowToggle } from "@/components/snow-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { SpaceStatus } from "@/components/space-status";
+import { OfflineBanner } from "@/components/offline-banner";
 import { useSnow } from "@/hooks/use-snow";
 import { Button } from "@/components/ui/button";
 
@@ -15,6 +19,7 @@ export default function GuestPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
+  const [selectedModel, setSelectedModel] = useState<ModelType>("random-forest");
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleSendMessage = async (content: string) => {
@@ -37,7 +42,7 @@ export default function GuestPage() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, guest: true }),
+        body: JSON.stringify({ content, guest: true, model: selectedModel }),
         signal: abortControllerRef.current.signal,
       });
 
@@ -50,6 +55,7 @@ export default function GuestPage() {
 
       const decoder = new TextDecoder();
       let fullContent = "";
+      let responseMeta: MessageMeta | undefined;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -66,6 +72,12 @@ export default function GuestPage() {
             try {
               const parsed = JSON.parse(data);
 
+              if (parsed.meta) {
+                responseMeta = parsed.meta;
+              }
+              if (parsed.error) {
+                fullContent = parsed.error;
+              }
               if (parsed.content) {
                 fullContent += parsed.content;
                 setStreamingContent(fullContent);
@@ -85,6 +97,7 @@ export default function GuestPage() {
             id: `assistant-${Date.now()}`,
             role: "assistant",
             content: fullContent,
+            meta: responseMeta,
           },
         ]);
       }
@@ -135,73 +148,39 @@ export default function GuestPage() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <SpaceStatus />
+          <ThemeToggle />
           <SnowToggle enabled={snowEnabled} onToggle={toggleSnow} />
           <Link href="/login">
             <Button variant="outline" size="sm" className="gap-2">
               <LogIn className="h-4 w-4" />
-              Sign In
+              <span className="hidden sm:inline">Sign In</span>
             </Button>
           </Link>
         </div>
       </header>
 
+      <OfflineBanner />
+
       {/* Main chat area */}
       <div className="flex flex-1 flex-col min-h-0 relative z-10">
         {/* Scrollable messages area */}
         <div className="flex-1 overflow-y-auto min-h-0">
-          {/* Info Banner - Show when no messages */}
+          {/* Welcome Screen - Show when no messages */}
           {messages.length === 0 && !isLoading && (
-            <div className="mx-auto w-full max-w-3xl px-4 pt-6">
-              <div className="rounded-xl border bg-linear-to-r from-blue-50 to-cyan-50 p-6 dark:from-blue-950/30 dark:to-cyan-950/30 dark:border-blue-900/50">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-blue-400 to-cyan-500">
-                    <Snowflake className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-foreground">Welcome to Snowbasin</h2>
-                    <p className="text-xs text-muted-foreground">Guest Mode - Chats are not saved</p>
-                  </div>
-                </div>
-
-                <p className="text-sm text-muted-foreground mb-4">
-                  I can help you with Utah-specific information:
-                </p>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex items-start gap-3 rounded-lg bg-white/60 p-3 dark:bg-white/5">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500 text-white">
-                      <Snowflake className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-sm">Snow & Weather</h3>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Snow forecasts, ski conditions, road conditions
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 rounded-lg bg-white/60 p-3 dark:bg-white/5">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500 text-white">
-                      <Train className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-sm">UTA Transit</h3>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Bus schedules, TRAX times, routes
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-blue-200/50 dark:border-blue-800/50">
-                  <p className="text-xs text-muted-foreground">
-                    <Link href="/signup" className="text-blue-500 hover:underline font-medium">
-                      Create an account
-                    </Link>{" "}
-                    to save your chat history
-                  </p>
-                </div>
-              </div>
+            <div className="mx-auto w-full max-w-3xl px-4 pt-8 pb-4">
+              <ChatWelcome
+                selectedModel={selectedModel}
+                onModelChange={setSelectedModel}
+                isGuest
+                onSend={handleSendMessage}
+              />
+              <p className="text-center text-xs text-muted-foreground mt-4">
+                <Link href="/signup" className="text-blue-500 hover:underline font-medium">
+                  Create an account
+                </Link>{" "}
+                to save your chat history
+              </p>
             </div>
           )}
 
@@ -213,6 +192,11 @@ export default function GuestPage() {
               streamingContent={streamingContent}
               onEditMessage={handleEditMessage}
               onResendMessage={handleResendMessage}
+              onRetry={() => {
+                const lastUser = [...messages].reverse().find(m => m.role === "user");
+                if (lastUser) handleSendMessage(lastUser.content);
+              }}
+              onSuggest={handleSendMessage}
             />
           )}
         </div>
@@ -223,6 +207,8 @@ export default function GuestPage() {
             onSend={handleSendMessage}
             onStop={handleStop}
             isLoading={isLoading}
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
           />
         </div>
       </div>

@@ -101,7 +101,7 @@ export function MapDisplay({ places, center, zoom = 12 }: MapDisplayProps) {
 
   if (loadError) {
     return (
-      <div className="flex h-[300px] items-center justify-center rounded-xl bg-neutral-100 dark:bg-neutral-800">
+      <div className="flex h-75 items-center justify-center rounded-xl bg-neutral-100 dark:bg-neutral-800">
         <p className="text-sm text-red-500">Error loading map</p>
       </div>
     );
@@ -109,7 +109,7 @@ export function MapDisplay({ places, center, zoom = 12 }: MapDisplayProps) {
 
   if (!isLoaded) {
     return (
-      <div className="flex h-[300px] items-center justify-center rounded-xl bg-neutral-100 dark:bg-neutral-800">
+      <div className="flex h-75 items-center justify-center rounded-xl bg-neutral-100 dark:bg-neutral-800">
         <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
       </div>
     );
@@ -145,7 +145,7 @@ export function MapDisplay({ places, center, zoom = 12 }: MapDisplayProps) {
             position={{ lat: selectedPlace.lat, lng: selectedPlace.lng }}
             onCloseClick={() => setSelectedPlace(null)}
           >
-            <div className="p-1 min-w-[150px]">
+            <div className="p-1 min-w-37.5">
               <h3 className="font-semibold text-neutral-900">{selectedPlace.name}</h3>
               {selectedPlace.address && (
                 <p className="mt-1 text-sm text-neutral-600">{selectedPlace.address}</p>

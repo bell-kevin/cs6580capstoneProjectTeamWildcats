@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { ThemeProvider } from "@/components/theme-provider";
 
 export default function AuthLayout({
