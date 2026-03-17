@@ -52,6 +52,7 @@ A full inventory of every CSV and Excel source currently in the repository is do
 ## Links
 
 - Dashboard: https://dashboard-snowbasin-wildcats.vercel.app/
+- Models profile: https://huggingface.co/hazemdhW26
 - Data export endpoint: https://d34agsj343lfgw.cloudfront.net/
 
 <!--
