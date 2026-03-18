@@ -513,7 +513,7 @@ def weighted_mse(predictions, targets, weights):
 
 def train_lstm_model(X, y, epochs=25, batch_size=128):
     dataset = TrafficDataset(X, y)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=True)
 
     model = TrafficLSTM(input_size=X.shape[2])
 
