@@ -9,18 +9,16 @@ import joblib
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from huggingface_hub import HfApi, create_repo, upload_folder
-from huggingface_hub.utils import RepositoryNotFoundError
+# from huggingface_hub import HfApi, create_repo, upload_folder
+# from huggingface_hub.utils import RepositoryNotFoundError
 
 TARGET_COLUMN = "traffic_count_total"
 RANDOM_STATE = 42
@@ -208,84 +206,6 @@ def drop_missing_target_rows(data: pd.DataFrame) -> tuple[pd.DataFrame, int]:
     dropped_count = int(len(data) - len(filtered))
     return filtered, dropped_count
 
-
-def build_model_pipeline() -> Pipeline:
-    numeric_features = [
-        "lane_count",
-        "temp_f",
-        "dewpoint_f",
-        "humidity_pct",
-        "wind_speed_mph",
-        "snow_depth_in",
-        "precip_1hr_in",
-        "hour",
-        "month",
-        "temp_dewpoint_spread",
-        "is_weekend",
-        "is_federal_holiday",
-        "is_peak_hour",
-        "distance_to_holiday_weekend",
-        "traffic_lag_1",
-        "traffic_lag_2",
-        "traffic_lag_3",
-        "traffic_lag_6",
-        "traffic_lag_12",
-        "traffic_lag_24",
-        "traffic_lag_168",
-        "hour_sin",
-        "hour_cos",
-        "day_of_week_sin",
-        "day_of_week_cos",
-        "month_sin",
-        "month_cos",
-    ]
-    categorical_features = ["day_of_week"]
-
-    preprocess = ColumnTransformer(
-        transformers=[
-            (
-                "numeric",
-                Pipeline(
-                    steps=[
-                        ("imputer", SimpleImputer(strategy="median")),
-                        ("scaler", StandardScaler()),
-                    ]
-                ),
-                numeric_features,
-            ),
-            (
-                "categorical",
-                Pipeline(
-                    steps=[
-                        ("imputer", SimpleImputer(strategy="most_frequent")),
-                        ("encoder", OneHotEncoder(handle_unknown="ignore")),
-                    ]
-                ),
-                categorical_features,
-            ),
-        ]
-    )
-
-    regressor = RandomForestRegressor(
-        n_estimators=250,
-        min_samples_leaf=2,
-        random_state=RANDOM_STATE,
-        n_jobs=-1,
-    )
-
-    return Pipeline(steps=[("preprocess", preprocess), ("regressor", regressor)])
-
-
-
-def regression_metrics(y_true: pd.Series, y_pred: pd.Series | list[float]) -> dict[str, float]:
-    rmse = mean_squared_error(y_true, y_pred) ** 0.5
-    return {
-        "rmse": float(rmse),
-        "mae": float(mean_absolute_error(y_true, y_pred)),
-        "r2": float(r2_score(y_true, y_pred)),
-    }
-
-
 def build_horizon_weights(horizon: int) -> np.ndarray:
     weights = np.linspace(1.0, 0.3, num=horizon, dtype=np.float32)
     return weights / weights.sum()
@@ -299,88 +219,6 @@ def weighted_mse_numpy(
     error = (predictions - targets) ** 2
     weighted_error = error * weights.reshape(1, -1)
     return float(weighted_error.mean())
-
-
-def split_dataset(
-    features: pd.DataFrame,
-    target: pd.Series,
-    timestamps: pd.Series,
-    test_size: float,
-    split_strategy: str,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
-    if split_strategy not in VALID_SPLIT_STRATEGIES:
-        raise ValueError(
-            f"Unsupported split strategy {split_strategy!r}. Use one of {sorted(VALID_SPLIT_STRATEGIES)}."
-        )
-
-    if not 0 < test_size < 1:
-        raise ValueError(f"test_size must be between 0 and 1, received {test_size}.")
-
-    if split_strategy == "random":
-        return train_test_split(
-            features,
-            target,
-            test_size=test_size,
-            random_state=RANDOM_STATE,
-        )
-
-    chronological = pd.DataFrame(
-        {
-            "timestamp": pd.to_datetime(timestamps, errors="coerce"),
-            "feature_row": features.index,
-            "target": target,
-        }
-    ).dropna(subset=["timestamp"])
-
-    if chronological.empty:
-        raise ValueError("Time-based split requires at least one valid timestamp.")
-
-    chronological = chronological.sort_values("timestamp")
-    split_index = max(int(len(chronological) * (1 - test_size)), 1)
-    split_index = min(split_index, len(chronological) - 1)
-
-    train_idx = chronological.iloc[:split_index]["feature_row"]
-    test_idx = chronological.iloc[split_index:]["feature_row"]
-
-    return (
-        features.loc[train_idx],
-        features.loc[test_idx],
-        target.loc[train_idx],
-        target.loc[test_idx],
-    )
-
-
-def evaluate_split(
-    features: pd.DataFrame,
-    target: pd.Series,
-    timestamps: pd.Series,
-    test_size: float,
-    split_strategy: str,
-) -> dict[str, float | int | str]:
-    X_train, X_test, y_train, y_test = split_dataset(
-        features=features,
-        target=target,
-        timestamps=timestamps,
-        test_size=test_size,
-        split_strategy=split_strategy,
-    )
-
-    pipeline = build_model_pipeline()
-    pipeline.fit(X_train, y_train)
-    champion_predictions = pipeline.predict(X_test)
-    champion_scores = regression_metrics(y_test, champion_predictions)
-
-    return {
-        "split_strategy": split_strategy,
-        "train_rows": int(len(X_train)),
-        "test_rows": int(len(X_test)),
-        "champion_rmse": champion_scores["rmse"],
-        "champion_mae": champion_scores["mae"],
-        "champion_r2": champion_scores["r2"],
-        "pipeline": pipeline,
-        "y_test": y_test,
-        "champion_predictions": champion_predictions,
-    }
 
 # Functions necessary for rnn/lstm model
 # build preprocessor for LSTM model
@@ -806,6 +644,8 @@ def train_and_evaluate(
     weekly_naive_r2 = r2_score(y_true_lstm, y_pred_weekly_naive)
 
     horizon_weights = build_horizon_weights(y_test_seq.shape[1])
+
+    
     lstm_weighted_mse = weighted_mse_numpy(lstm_predictions, y_test_seq, horizon_weights)
     weekly_naive_weighted_mse = weighted_mse_numpy(
         y_test_weekly_naive,
@@ -822,55 +662,16 @@ def train_and_evaluate(
     print("Weekly naive R2:", weekly_naive_r2)
     print("Weekly naive weighted MSE:", weekly_naive_weighted_mse)
 
-    split_results = evaluate_split(
-        features=features,
-        target=target,
-        timestamps=engineered["date_hour"],
-        test_size=test_size,
-        split_strategy=split_strategy,
-    )
-
-    comparison_results: dict[str, float | str] = {}
-    if compare_with_time_split and split_strategy == "random":
-        time_results = evaluate_split(
-            features=features,
-            target=target,
-            timestamps=engineered["date_hour"],
-            test_size=test_size,
-            split_strategy="time",
-        )
-        comparison_results = {
-            "time_split_champion_rmse": float(time_results["champion_rmse"]),
-            "time_split_champion_mae": float(time_results["champion_mae"]),
-            "time_split_champion_r2": float(time_results["champion_r2"]),
-            "random_minus_time_rmse": float(split_results["champion_rmse"])
-            - float(time_results["champion_rmse"]),
-            "random_minus_time_mae": float(split_results["champion_mae"])
-            - float(time_results["champion_mae"]),
-            "random_minus_time_r2": float(split_results["champion_r2"])
-            - float(time_results["champion_r2"]),
-        }
-
-    artifact_path = model_dir / "champion_model.joblib"
-    joblib.dump(split_results["pipeline"], artifact_path)
 
     metrics_df = pd.DataFrame(
         [
             {
-                "split_strategy": split_results["split_strategy"],
-                "model": "baseline_weekly_naive_sequence",
+                "split_strategy": "sequence",
+                "model": "baseline_weekly_naive",
                 "rmse": weekly_naive_rmse,
                 "mae": weekly_naive_mae,
                 "r2": weekly_naive_r2,
                 "weighted_mse": weekly_naive_weighted_mse,
-            },
-            {
-                "split_strategy": split_results["split_strategy"],
-                "model": "champion_random_forest",
-                "rmse": split_results["champion_rmse"],
-                "mae": split_results["champion_mae"],
-                "r2": split_results["champion_r2"],
-                "weighted_mse": np.nan,
             },
             {
                 "split_strategy": "sequence",
@@ -885,72 +686,37 @@ def train_and_evaluate(
     metrics_file = results_dir / "model_metrics.csv"
     metrics_df.to_csv(metrics_file, index=False)
 
-    plt.figure(figsize=(8, 6))
-    plt.scatter(split_results["y_test"], split_results["champion_predictions"], alpha=0.3)
-    lower = min(
-        float(split_results["y_test"].min()),
-        float(min(split_results["champion_predictions"])),
-    )
-    upper = max(
-        float(split_results["y_test"].max()),
-        float(max(split_results["champion_predictions"])),
-    )
-    plt.plot([lower, upper], [lower, upper], linestyle="--")
-    plt.xlabel("Actual traffic_count_total")
-    plt.ylabel("Predicted traffic_count_total")
-    plt.title("Actual vs Predicted Traffic")
-    actual_plot = results_dir / "actual_vs_predicted.svg"
-    plt.tight_layout()
-    plt.savefig(actual_plot)
-    plt.close()
-
-    residuals = split_results["y_test"] - split_results["champion_predictions"]
-    plt.figure(figsize=(8, 6))
-    plt.scatter(split_results["champion_predictions"], residuals, alpha=0.3)
-    plt.axhline(0.0, linestyle="--")
-    plt.xlabel("Predicted traffic_count_total")
-    plt.ylabel("Residual (actual - predicted)")
-    plt.title("Residual Plot")
-    residual_plot = results_dir / "residual_plot.svg"
-    plt.tight_layout()
-    plt.savefig(residual_plot)
-    plt.close()
 
     summary = {
-        "split_strategy": split_results["split_strategy"],
-        "train_rows": split_results["train_rows"],
-        "test_rows": split_results["test_rows"],
+        "split_strategy": "sequence",
+        "train_rows": len(X_train_seq),
+        "test_rows": len(X_test_seq),
         "dropped_target_rows": dropped_target_rows,
         "baseline_weekly_naive_rmse": weekly_naive_rmse,
         "baseline_weekly_naive_mae": weekly_naive_mae,
         "baseline_weekly_naive_r2": weekly_naive_r2,
         "baseline_weekly_naive_weighted_mse": weekly_naive_weighted_mse,
-        "champion_rmse": split_results["champion_rmse"],
-        "champion_mae": split_results["champion_mae"],
-        "champion_r2": split_results["champion_r2"],
+        "lstm_rmse": lstm_rmse,
+        "lstm_mae": lstm_mae,
+        "lstm_r2": lstm_r2,
         "lstm_weighted_mse": lstm_weighted_mse,
-        "model_artifact": str(artifact_path),
-        "metrics_file": str(metrics_file),
-        "actual_vs_predicted_plot": str(actual_plot),
-        "residual_plot": str(residual_plot),
+        "metrics_file": str(metrics_file)
     }
-    summary.update(comparison_results)
-
     summary_file = results_dir / "training_summary.json"
     summary_file.write_text(json.dumps(summary, indent=2), encoding='utf-8')
     summary["summary_file"] = str(summary_file)
 
     # Create and save model cards for Hugging Face
-    rf_metrics = {
-        "rmse": split_results["champion_rmse"],
-        "mae": split_results["champion_mae"],
-        "r2": split_results["champion_r2"],
-        "split_strategy": split_results["split_strategy"],
-        "train_rows": split_results["train_rows"],
-        "test_rows": split_results["test_rows"],
-    }
-    rf_card = create_model_card("snowbasin-traffic-rf", rf_metrics, "random_forest")
-    (model_dir / "README_rf.md").write_text(rf_card, encoding='utf-8')
+    # rf_metrics = {
+    #     "rmse": split_results["champion_rmse"],
+    #     "mae": split_results["champion_mae"],
+    #     "r2": split_results["champion_r2"],
+    #     "split_strategy": split_results["split_strategy"],
+    #     "train_rows": split_results["train_rows"],
+    #     "test_rows": split_results["test_rows"],
+    # }
+    # rf_card = create_model_card("snowbasin-traffic-rf", rf_metrics, "random_forest")
+    # (model_dir / "README_rf.md").write_text(rf_card, encoding='utf-8')
 
     lstm_metrics = {
         "rmse": lstm_rmse,
@@ -964,45 +730,45 @@ def train_and_evaluate(
     (model_dir / "README_lstm.md").write_text(lstm_card, encoding='utf-8')
 
     # Push to Hugging Face if requested
-    if push_to_hf:
-        if hf_repo_name is None:
-            raise ValueError("hf_repo_name must be provided when push_to_hf=True")
+    # if push_to_hf:
+    #     if hf_repo_name is None:
+    #         raise ValueError("hf_repo_name must be provided when push_to_hf=True")
 
-        # Create separate directories for each model type
-        rf_dir = model_dir / "random_forest"
-        lstm_dir = model_dir / "lstm"
-        rf_dir.mkdir(parents=True, exist_ok=True)
-        lstm_dir.mkdir(parents=True, exist_ok=True)
+    #     # Create separate directories for each model type
+    #     rf_dir = model_dir / "random_forest"
+    #     lstm_dir = model_dir / "lstm"
+    #     rf_dir.mkdir(parents=True, exist_ok=True)
+    #     lstm_dir.mkdir(parents=True, exist_ok=True)
 
-        # Copy Random Forest artifacts
-        import shutil
-        shutil.copy(model_dir / "champion_model.joblib", rf_dir / "champion_model.joblib")
-        shutil.copy(model_dir / "README_rf.md", rf_dir / "README.md")
+    #     # Copy Random Forest artifacts
+    #     import shutil
+    #     shutil.copy(model_dir / "champion_model.joblib", rf_dir / "champion_model.joblib")
+    #     shutil.copy(model_dir / "README_rf.md", rf_dir / "README.md")
 
-        # Copy LSTM artifacts
-        shutil.copy(model_dir / "champion_lstm.pth", lstm_dir / "champion_lstm.pth")
-        shutil.copy(model_dir / "lstm_preprocessor.joblib", lstm_dir / "lstm_preprocessor.joblib")
-        shutil.copy(model_dir / "lstm_target_scaler.joblib", lstm_dir / "lstm_target_scaler.joblib")
-        shutil.copy(model_dir / "lstm_config.json", lstm_dir / "lstm_config.json")
-        shutil.copy(model_dir / "README_lstm.md", lstm_dir / "README.md")
+    #     # Copy LSTM artifacts
+    #     shutil.copy(model_dir / "champion_lstm.pth", lstm_dir / "champion_lstm.pth")
+    #     shutil.copy(model_dir / "lstm_preprocessor.joblib", lstm_dir / "lstm_preprocessor.joblib")
+    #     shutil.copy(model_dir / "lstm_target_scaler.joblib", lstm_dir / "lstm_target_scaler.joblib")
+    #     shutil.copy(model_dir / "lstm_config.json", lstm_dir / "lstm_config.json")
+    #     shutil.copy(model_dir / "README_lstm.md", lstm_dir / "README.md")
 
-        # Upload Random Forest model
-        try:
-            rf_repo = f"{hf_repo_name}-random-forest"
-            rf_url = push_to_huggingface(rf_dir, rf_repo, hf_token, hf_private)
-            summary["huggingface_rf_url"] = rf_url
-        except Exception as e:
-            print(f"Failed to upload Random Forest model: {e}")
-            summary["huggingface_rf_error"] = str(e)
+    #     # Upload Random Forest model
+    #     try:
+    #         rf_repo = f"{hf_repo_name}-random-forest"
+    #         rf_url = push_to_huggingface(rf_dir, rf_repo, hf_token, hf_private)
+    #         summary["huggingface_rf_url"] = rf_url
+    #     except Exception as e:
+    #         print(f"Failed to upload Random Forest model: {e}")
+    #         summary["huggingface_rf_error"] = str(e)
 
-        # Upload LSTM model
-        try:
-            lstm_repo = f"{hf_repo_name}-lstm"
-            lstm_url = push_to_huggingface(lstm_dir, lstm_repo, hf_token, hf_private)
-            summary["huggingface_lstm_url"] = lstm_url
-        except Exception as e:
-            print(f"Failed to upload LSTM model: {e}")
-            summary["huggingface_lstm_error"] = str(e)
+    #     # Upload LSTM model
+    #     try:
+    #         lstm_repo = f"{hf_repo_name}-lstm"
+    #         lstm_url = push_to_huggingface(lstm_dir, lstm_repo, hf_token, hf_private)
+    #         summary["huggingface_lstm_url"] = lstm_url
+    #     except Exception as e:
+    #         print(f"Failed to upload LSTM model: {e}")
+    #         summary["huggingface_lstm_error"] = str(e)
 
     return summary
 
