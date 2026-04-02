@@ -12,6 +12,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 import numpy as np
 import torch
@@ -645,12 +646,39 @@ def train_and_evaluate(
 
     horizon_weights = build_horizon_weights(y_test_seq.shape[1])
 
-    
-    lstm_weighted_mse = weighted_mse_numpy(lstm_predictions, y_test_seq, horizon_weights)
+    # Inverse transform full sequences to preserve shape
+    y_true_seq_original = target_scaler.inverse_transform(
+        y_test_seq.reshape(-1, 1)
+    ).reshape(y_test_seq.shape)
+
+    y_pred_seq_original = target_scaler.inverse_transform(
+        lstm_predictions.reshape(-1, 1)
+    ).reshape(lstm_predictions.shape)
+
+    y_naive_seq_original = target_scaler.inverse_transform(
+        y_test_weekly_naive.reshape(-1, 1)
+    ).reshape(y_test_weekly_naive.shape)
+
+    # Get weighted MSE in real units
+    lstm_weighted_mse = weighted_mse_numpy(
+        y_pred_seq_original,
+        y_true_seq_original,
+        horizon_weights
+    )
+
     weekly_naive_weighted_mse = weighted_mse_numpy(
-        y_test_weekly_naive,
-        y_test_seq,
-        horizon_weights,
+        y_naive_seq_original,
+        y_true_seq_original,
+        horizon_weights
+    )
+
+    # Horizon-wise RMSE (without flattening) to see how accuracy changes across the 72 hour horizon for both LSTM and weekly naive predictions
+    rmse_per_horizon_lstm = np.sqrt(
+        ((y_pred_seq_original - y_true_seq_original) ** 2).mean(axis=0)
+    )
+
+    rmse_per_horizon_naive = np.sqrt(
+        ((y_naive_seq_original - y_true_seq_original) ** 2).mean(axis=0)
     )
 
     print("LSTM RMSE:", lstm_rmse)
@@ -661,6 +689,8 @@ def train_and_evaluate(
     print("Weekly naive MAE:", weekly_naive_mae)
     print("Weekly naive R2:", weekly_naive_r2)
     print("Weekly naive weighted MSE:", weekly_naive_weighted_mse)
+    print("LSTM RMSE per horizon:", rmse_per_horizon_lstm)
+    print("Weekly naive RMSE per horizon:", rmse_per_horizon_naive)
 
 
     metrics_df = pd.DataFrame(
@@ -686,6 +716,14 @@ def train_and_evaluate(
     metrics_file = results_dir / "model_metrics.csv"
     metrics_df.to_csv(metrics_file, index=False)
 
+    horizon_df = pd.DataFrame({
+    "horizon_step": np.arange(1, len(rmse_per_horizon_lstm) + 1),
+    "lstm_rmse": rmse_per_horizon_lstm,
+    "naive_rmse": rmse_per_horizon_naive,
+    })
+
+    horizon_file = results_dir / "horizon_rmse.csv"
+    horizon_df.to_csv(horizon_file, index=False)
 
     summary = {
         "split_strategy": "sequence",

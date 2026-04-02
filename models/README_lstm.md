@@ -16,9 +16,9 @@ This model predicts traffic counts for Snowbasin ski resort based on time, weath
 LSTM
 
 ## Performance Metrics
-- RMSE: 106.03562910403849
-- MAE: 66.26000327765568
-- R2: 0.9038455267645598
+- RMSE: 106.57768987722693
+- MAE: 71.40272130053302
+- R2: 0.902086433245663
 
 ## Features
 The model uses the following features:
@@ -58,8 +58,8 @@ model.eval()
 
 ## Training Details
 - Split Strategy: sequence
-- Train Rows: 48781
-- Test Rows: 11820
+- Train Rows: 44600
+- Test Rows: 10521
 
 ## Citation
 Developed by Team Wildcats for CS6580 Capstone Project - Spring 2026
